@@ -1,0 +1,14 @@
+<html>
+    <head>
+      {% if title %}
+      <title>{{ title }} - Viz Pipeline</title>
+      {% else %}
+      <title>Visualization Pipeline</title>
+      {% endif %}
+    </head>
+    <body>
+        <div>Visualization Pipeline: <a href="/index">Home</a></div>
+        <hr>
+        {% block content %}{% endblock %}
+    </body>
+</html>

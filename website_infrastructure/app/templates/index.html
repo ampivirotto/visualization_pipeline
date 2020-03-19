@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <p>Welcome to Temple Visualization Pipeline Platform.  Please select either a GEO accession number or a local directory to get started.</p>
+    <p> GEO Accession Number: </p>
+    <form action="/action_page.php">
+        <label for="geonum">GEO Number:</label>
+        <input type="text" id="geonum" name="geonum"><br><br>
+        <input type="submit" value="Submit">
+      </form>
+    <p> Or select a directory: </p>
+    <input type="file" id="filepicker" name="fileList" webkitdirectory multiple />
+    <ul id="listing"></ul>
+{% endblock %}
