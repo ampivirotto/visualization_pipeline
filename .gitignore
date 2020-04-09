@@ -1,1 +1,4 @@
 data/
+illumina_files/
+python_programs/analysis-vcf2hdf5/
+python_programs/pop_mar27_sorted_norm.vcf
