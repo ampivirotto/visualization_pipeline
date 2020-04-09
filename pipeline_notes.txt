@@ -1,0 +1,31 @@
+Pipeline Notes: 
+
+3/23/2020: 	Run bash file: 
+				Added to bash script to make list of files 
+				For gtc2vcf bcftools command:
+					Lines   total/missing-reference/skipped:        716503/0/632
+				Create a log file??  
+				
+3/25/2020:	Wrote python program testing_geoparse.py
+				Functions include:
+					identifyChip - choose files based on user input
+					checkDir - check to see if directory is made if not make 
+					retrieveGEOFiles - get GEO files and metadata based on user input
+					makeBashFile - make bash file to run previous pipeline
+					runBash - run the bash script via subprocess module 
+				Testing the python program with GEO GSE74100:
+					Lines   total/missing-reference/skipped:        1175489/1/1312
+					Need to make sure Log file is working correctly for future runs
+					Implement bcftools sort, normalize, and index - part of bash script
+
+3/26/2020:	Tried to implement bcftools sort:
+				When run it - emptied out the file - sort went to standard out not new file?
+				Reran the gtc2vcf tool for GSE93106:
+					Lines   total/missing-reference/skipped:        716503/0/632
+			Using testing_geoparse.py for a small sample set for demonstration:
+				Using GEO GSE67660:
+					python testing_geoparse.py GSE67660 /mnt/d/visualization_pipeline/data/ human_omni small_sample.vcf
+					Lines   total/missing-reference/skipped:        4284426/2998/6638
+				
+					
+					
