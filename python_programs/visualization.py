@@ -84,7 +84,7 @@ def plot_pca_coords(coords, model, pc1, pc2, ax, sample_population, populations,
 def fig_pca(coords, model, title, sample_population=None):
     if sample_population is None:
         sample_population = df_samples.population.values
-    populations = sample_population.unique()
+    populations = list(sample_population.unique())
     colordict = randColor(len(populations), populations)
     # plot coords for PCs 1 vs 2, 3 vs 4
     fig = plt.figure(figsize=(10, 5))
@@ -187,7 +187,7 @@ def LD(directory, outfn, newVCF=False, samples = None, bs = 20000):
     gn = prepData(directory, outfn, newVCF, samples, bs)
 
     #plot ld
-    plot_ld(gn[:1000], 'Figure 1. Pairwise LD.')
+    plot_ld(gn[:1000], 'Pairwise LD.')
     plt.show()
 
     #subsabmple snps
@@ -196,14 +196,14 @@ def LD(directory, outfn, newVCF=False, samples = None, bs = 20000):
     vidx.sort()
     gnr = gn.take(vidx, axis=0)
 
-    plot_ld(gnr[:1000], 'Figure 2. Pairwise LD after random downsampling.')
+    plot_ld(gnr[:1000], 'Pairwise LD after random downsampling.')
     plt.show()
 
     #prune linkage
     gnu = ld_prune(gnr, size=500, step=200, threshold=.1, n_iter=5)
 
     #linkage after pruning
-    plot_ld(gnu[:1000], 'Figure 3. Pairwise LD after LD pruning.')
+    plot_ld(gnu[:1000], 'Pairwise LD after LD pruning.')
     plt.show()
 
 
@@ -219,10 +219,8 @@ def pca(directory, outfn, newVCF=False, samples = None, bs = 20000):
 
     coords1, model1 = allel.pca(gn, n_components=10, scaler='patterson')
 
-    fig_pca(coords1, model1, 'Figure 4. Conventional PCA.', sample_population = df[1])
+    fig_pca(coords1, model1, 'Conventional PCA.', sample_population = df[1])
     plt.show()
-
-    allel.pca(gn)
 
     ## init PCA  https://ipyrad.readthedocs.io/en/latest/API-analysis/cookbook-pca.html
     ##pca = ipa.pca(
