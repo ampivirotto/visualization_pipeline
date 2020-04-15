@@ -10,9 +10,12 @@
         <div>
             Visualization Pipeline:
             <a href="{{ url_for('index') }}">Home</a>
+            <a href="{{ url_for('analysis') }}">Analysis</a>
             <a href="{{ url_for('data') }}">Data</a>
+            <a href="{{ url_for('visualization') }}">Visualization</a>
+            <a href="{{ url_for('documentation') }}">Documentation</a>
+
         </div>
-        <hr>
         {% with messages = get_flashed_messages() %}
         {% if messages %}
         <ul>
