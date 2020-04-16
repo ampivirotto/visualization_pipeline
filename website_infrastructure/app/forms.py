@@ -1,13 +1,30 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, BooleanField, SubmitField, SelectField
+from wtforms import StringField, BooleanField, SubmitField, SelectField, widgets, SelectMultipleField
 from wtforms.validators import DataRequired
+import pickle
+
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
 
 class SelectionForm(FlaskForm):
     geoaccession = StringField('GEOAccession', validators=[DataRequired()])
 
-    chipType = SelectField('ChipType', choices =[("human_omni_express", "HumanOmniExpress-24-v1-0-B"), ("dogHD","CanineHD"), ("inf_omni_zhonghua", "InfiniumOmniZhongHua"),
-                                                    ("human_omni", "HumanOmni5-4")])
+    ## load the chip information
+    with open('app/website.pickle', 'rb') as f:
+        data=pickle.load(f)
 
-    #location = StringField('Local Location', validator=[DataRequired()])
+    chipType = SelectField('ChipType', choices =data )
+
+    viz_options = MultiCheckboxField('Visualizations', choices=[('het', 'Heterozygosity'), ('pca', 'PCA'), ('circos', 'Circos')])
+
+    output = StringField('Output Label')
+
+    samples = BooleanField("Click here if you want use all the samples in the study (or later you can specify specific samples)")
 
     submit = SubmitField('Done')
+
+##class pickSamples(FlaskForm):
+##    samples = MultiCheckboxField('Samples', choices=files)
+##
+##    submit = SubmitField('Done')
