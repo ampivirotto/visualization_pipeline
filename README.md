@@ -1,7 +1,17 @@
 # visualization_pipeline
 
 Documentation:
-	->Requirement:
+	->Requirements:
+		flask
+		scikit-allel
+		GEOparse
+		wget
+		pickle
+		numpy 
+		matplotlib
+		seaborn
+		bcolz
+		pandas
 		
 	
 	->GUI Website:
