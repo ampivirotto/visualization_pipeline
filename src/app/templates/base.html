@@ -1,0 +1,42 @@
+<html>
+    <head>
+      {% if title %}
+      <title>{{ title }} - Visual Genomics</title>
+      {% else %}
+      <title>Visual Genomics Platform</title>
+      {% endif %}
+	  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    </head>
+    <body>
+		<header>	
+			<div class='container'>
+				<h1 class='logo'>Visual Genomics</h1>
+				<strong><nav>
+					<ul class="menu">
+						<li><a href="{{ url_for('index') }}">Home</a></li>
+						<li><a href="{{ url_for('analysis') }}">Analyze</a></li>
+						<li><a href="{{ url_for('visualization') }}">Visualize</a></li>
+						<li><a href="{{ url_for('documentation') }}">Documents</a></li>
+						<li><a href="{{ url_for('faqs') }}">FAQS</a></li>
+						<li><a href="{{ url_for('about') }}">About</a></li>
+					</ul>
+				</nav></strong>
+			</div>
+		</header>
+		<div class="container">
+			{% with messages = get_flashed_messages() %}
+			{% if messages %}
+			<ul>
+				{% for message in messages %}
+				<li>{{ message }}</li>
+				{% endfor %}
+			</ul>
+			{% endif %}
+			{% endwith %}
+			{% block content %}{% endblock %}
+		</div>
+    </body>
+	<footer>
+        <p></p>
+    </footer>
+</html>

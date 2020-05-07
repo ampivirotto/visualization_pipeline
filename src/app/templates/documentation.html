@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Documentation</h2>
+	<h3>Input Fields</h3>
+	<p>GEO Accession Number:  the series accession number of the study of interest which can be found at <a href="https://www.ncbi.nlm.nih.gov/geo/">Gene Expression Omnibus (GEO)</a></p>
+	<p>Output Label:  output label for resulting files (vcf, bcf, tab) and image files (for any figures)</p>
+	<p>ChipType: Illumina Beadchip used in study.  This could be found on the GEO page for the study under platform. If you encounter errors in the pipeline, it may be that the version is incorrect. </p>
+	<p>Visualization: Types of visualization graphs to output. These will be saves as jpgs in the series folder. </p>
+	<p>Subsample: If you would like to just select certain samples from the series.  Once all the files are read in then the user can select the samples of interest. </p>
+	<p></p>
+	<h3>Pipeline</h3>
+	<p>1. Check if series (GSE) has been downloaded yet and create series directory. </p>
+	<p>2. Identify the files needed based on Beadchip type. </p>
+	<p>3. Download all the sample IDAT files and download metadata.</p>
+	<p>4. Create bash file and run bash file which will:</p>
+	<p>->Move IDAT files into SAMPLE directories.</p>
+	<p>->Move metadata into SAMPLE directories.</p>
+	<p>->Run Autoconvert on all IDAT files > converts to GTC format. </p>
+	<p>->Create filelist of all GTC files (there will be one per sample) </p>
+	<p>->Convert GTC files to BCF format using BCFtools GTC2VCF </p>
+	<p>->Sort, Normalize, and Index BCF file. </p>
+	<p>->Create VCF format from BCF format.</p>
+	<p></p>
+	<h3>Visualization Types</h3>
+	<p>Heterozygosity - Graphs the heterozygosity (percent of 0/1 or 1/0 per variant) across the genome</p>
+	<p>PCA - Principal Components Analysis </p>
+	<p>Circos - circular graph that can contain SNP density, heterozygosity, and FST</p>
+	<p>Site Frequency Spectrum - Graph of the number of variants for each derived allele count</p>
+	<p>Heat Topology - Plots relatedness between individuals. Should see 0.5 within an individual and around 0 between populations</p>
+	<p></p>
+	
+	
+
+{% endblock %}

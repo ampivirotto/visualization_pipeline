@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Data Analysis</h2>
+	<h3>For help or more information about any of the sections, see the Documentation tab. </h3>
+    <form action="" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.geoaccession.label }}<br>
+            {{ form.geoaccession(size=32) }}
+            {% for error in form.geoaccession.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+		<p>
+			{{ form.output.label }}<br>
+			{{ form.output }}
+			{% for error in form.output.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+		</p>
+        <p>
+            {{ form.chipType.label }}<br>
+			{{ form.chipType }}
+            {% for error in form.chipType.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+		<p>
+			{{ form.viz_options.label}}<br>
+			{{ form.viz_options(size=32) }}
+			{% for error in form.viz_options.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+		</p>
+		<p>
+			{{ form.samples.label}}<br>
+			{{ form.samples(size=32) }}
+			{% for error in form.samples.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+		</p>
+        <p>{{ form.submit() }}</p>
+    </form>
+{% endblock %}
