@@ -7,3 +7,4 @@ src/Dockerfile
 src/requirements.txt
 src/pipeline/test.log
 src/pipeline/illumina_files/*
+reference/*

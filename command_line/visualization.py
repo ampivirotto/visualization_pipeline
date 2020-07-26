@@ -10,7 +10,7 @@ import seaborn as sns
 sns.set_style('white')
 sns.set_style('ticks')
 import bcolz
-#import ipyrad.analysis as ipa
+import ipyrad.analysis as ipa
 import pandas as pd
 import os
 from collections import defaultdict
@@ -19,14 +19,26 @@ from collections import defaultdict
 def randColor(num, pops):
     number_of_colors = num
 
-    color = ["#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
-             for i in range(number_of_colors)]
+    colors = []
+    r = int(random.random() * 256)
+    g = int(random.random() * 256)
+    b = int(random.random() * 256)
+    step = 256 / number_of_colors
+    for i in range(number_of_colors):
+        r += step
+        g += step
+        b += step
+        r = int(r) % 256
+        g = int(g) % 256
+        b = int(b) % 256
+        colors.append((r,g,b))
 
     colordict = {}
     for x in range(len(pops)):
-        colordict[pops[x]] = color[x]
-
+        colordict[pops[x]] = colors[x]
+    print(colordict)
     return colordict
+
 
 def makeVCF(directory, samples, outfn):
     """
@@ -67,30 +79,58 @@ def ld_prune(gn, size, step, threshold=.1, n_iter=1):
     return gn
 
 def plot_pca_coords(coords, model, pc1, pc2, ax, sample_population, populations, pop_colours):
+
+    #import pdb; pdb.set_trace()
     sns.despine(ax=ax, offset=5)
     x = coords[:, pc1]
     y = coords[:, pc2]
-    for pop in populations:
+    for i, pop in enumerate(populations):
+        #pdb.set_trace()
         flt = (sample_population == pop)
-        ax.plot(x[flt], y[flt], marker='o', #color=pop_colours[pop],
-                label=pop, linestyle='None', markersize=6, mec='k', mew=.5)
+        #pdb.set_trace()
+        if pop == "Unknown":
+            ax.plot(x[flt], y[flt], marker='o', color = 'black', label=pop, linestyle='None', markersize=6, mec='k', mew=.5)
+        else:
+            ax.plot(x[flt], y[flt], marker='o', label=pop, linestyle='None', markersize=6, mec='k', mew=.5)
+    #pdb.set_trace()
     ax.set_xlabel('PC%s (%.1f%%)' % (pc1+1, model.explained_variance_ratio_[pc1]*100))
     ax.set_ylabel('PC%s (%.1f%%)' % (pc2+1, model.explained_variance_ratio_[pc2]*100))
 
-def fig_pca(coords, model, title, sample_population=None):
+def fig_pca(directory, outfn, coords, model, title, sample_population=None):
+    import pylab
+
     if sample_population is None:
         sample_population = df_samples.population.values
     populations = list(sample_population.unique())
     colordict = randColor(len(populations), populations)
+
     # plot coords for PCs 1 vs 2, 3 vs 4
-    fig = plt.figure(figsize=(10, 6))
-    ax = fig.add_subplot(1, 2, 1)
+    figData = pylab.figure(figsize= (10, 6))
+    #fig = pylab.figure()
+    #figlegend = pylab.figure(figsize=(3,2))
+    #ax = fig.add_subplot(121)
+    #lines = ax.plot(range(10), pylab.randn(10), range(10), pylab.randn(10))
+
+    ax = figData.add_subplot(1, 2, 1)
     plot_pca_coords(coords, model, 0, 1, ax, sample_population, populations, colordict)
-    ax = fig.add_subplot(1, 2, 2)
+    ax = figData.add_subplot(1, 2, 2)
     plot_pca_coords(coords, model, 2, 3, ax, sample_population, populations, colordict)
-    ax.legend(bbox_to_anchor=(1, 1), loc='upper left')
-    fig.suptitle(title, y=1.02)
-    fig.tight_layout()
+
+    # create a second figure for the legend
+    figLegend = pylab.figure(figsize = (5, 10))
+
+    # produce a legend for the objects in the other figure
+    pylab.figlegend(*ax.get_legend_handles_labels(), loc = 'upper left')
+
+    # save the two figures to files
+    #figData.savefig("plot.png")
+    figLegend.savefig(directory + "graphics/" + outfn + "_pca_legend.jpg")
+
+    #ax.legend(bbox_to_anchor=(1, 1), loc='center')
+    figData.suptitle(title, y=1.02)
+    #fig.tight_layout()
+
+    figData.savefig(directory + "graphics/" + outfn + "_pca.jpg")
 
 
 def transform(g):
@@ -118,9 +158,9 @@ def prepData(directory, outfn, newVCF, samples, bs):
 
     vcffile = directory + outfn + ".vcf"
 
-    #runConversion(outfn, vcffile, bs)
+    runConversion(outfn, vcffile, bs)
 
-    callsetfn = directory + '/analysis-vcf2hdf5/' + outfn + ".snps.hdf5"
+    callsetfn = directory + 'analysis-vcf2hdf5/' + outfn + ".snps.hdf5"
     callset = h5py.File(callsetfn, mode= 'r')
 
     #callset = allel.read_vcf(vcffile)
@@ -256,17 +296,23 @@ def pca(directory, outfn, column, newVCF=False, samples = None, bs = 20000):
     """
     main function to run pca visualization
     """
+    import pdb
 
-    gn, callset = prepData(directory, outfn, newVCF, samples, bs)
+    #gn, callset = prepData(directory, outfn, newVCF, samples, bs)
+    callset = allel.read_vcf(directory + outfn + ".vcf")
+
+    g = allel.GenotypeChunkedArray(callset['calldata/GT'])
+    gn = transform(g)
 
     ## get metadata
-    df = retrieveMetaData(samples, directory, outfn)
+    #df = retrieveMetaData(samples, directory, outfn)
+    df = pd.read_csv(directory + "canine_subset_7_8.csv")
 
     coords1, model1 = allel.pca(gn, n_components=10, scaler='patterson')
 
-    fig_pca(coords1, model1, 'Conventional PCA.', sample_population = df[column])
-    #plt.show()
-    plt.savefig(directory + "graphics/" + outfn + "_pca.jpg")
+    fig_pca(directory, outfn, coords1, model1, 'Conventional PCA.', sample_population = df[column])
+
+
 
 def makeDATFile(pos, gt, chrm, typecount, snpdensity, directory, outfn, typel):
 
@@ -427,6 +473,7 @@ def main(viz_options, directory, outfn, vcffile):
         pca(directory, outfn, 'ethnic group')
     if 'heatmap' in viz_options:
         ## call R script
+        print('error')
 
 
 ## TESTING ###
@@ -434,3 +481,17 @@ def main(viz_options, directory, outfn, vcffile):
 #circos("../../data/GSE74100/", 'GSE74100', "myanmar_population_structure_GSE74100")
 #retrieveMetaData(None, '../../data/GSE74100/', 'GSE74100')
 #sfs("../../data/GSE74100/", "myanmar_population_structure_GSE74100")
+
+##listdf = []
+##directs = ['GSE96736', 'GSE90441', 'GSE83160', 'GSE70454']
+##for x in directs:
+##    df = retrieveMetaData(None, '/mnt/d/visualization_pipeline/data/' + x + "/", x)
+##    listdf.append(df)
+##
+##df_all = pd.concat(listdf, sort=False)
+##
+##df_all.to_csv("../data/sardinia_canine_allSamples.csv", index=False)
+
+pca("../data/", 'subset_7_8.recode', 'breed')
+
+#runConversion('sardinia_canine_allSamples', '../data/sardinia_canine_allsamples.vcf', 10000)

@@ -5,7 +5,7 @@ import subprocess
 import sys
 import time
 import pickle
-import visualization as viz_py
+#import visualization as viz_py
 
 def identifyChip(chipType):
     """
@@ -31,11 +31,16 @@ def checkDir(directory):
     ## test if directory is there
     if not os.path.exists(directory):
         os.mkdir(directory)
-        sys.out = open(directory + '/' + str(time.time()) + '.log', 'w')
+        orig_stout = sys.stdout
+        f = open(directory + '/' + str(time.time()) + '.log', 'w')
+        sys.stdout = f
         print("Making new directory: " + directory + "\n")
     else:
-        sys.out = open(directory + '/' + str(time.time()) + '.log', 'w')
+        orig_stout = sys.stdout
+        f = open(directory + '/' + str(time.time()) + '.log', 'w')
+        sys.stdout = f
         print("Found directory: " + directory + "\n")
+    return orig_stout, f
 
 def retrieveGEOFiles(geonum, directory):
     """
@@ -75,7 +80,7 @@ def retrieveGEOFiles(geonum, directory):
             o.write("\n - %s : %s" % (key, ", ".join(value)))
         o.close()
 
-    print(" ################### FINISHED DOWNLOAD ###################### \n\n")
+    print("################### FINISHED DOWNLOAD ###################### \n\n")
 
     return samplelist
 
@@ -95,7 +100,7 @@ def makeBashFile(directory, bpm, csv, egt, output):
     bash.close()
 
     ## mash bash files
-    filenames = [directory + '/run1.sh', 'pipeline/main.sh']
+    filenames = [directory + '/run1.sh', 'main.sh']
     with open(directory + '/final.sh', 'w') as outfile:
         for fname in filenames:
             with open(fname) as infile:
@@ -114,9 +119,12 @@ def runBash(directory):
     subprocess.call(['bash', file])
 
 def main(geonum, chipType, allSamples, output, viz=None):
-    directory = "../data/" + geonum
 
-    checkDir(directory)
+    start = time.time()
+
+    directory = "/mnt/d/visualization_pipeline/data/" + geonum
+
+    ogstdout, f = checkDir(directory)
 
     bpm, egt, csv = identifyChip(chipType)
 
@@ -126,29 +134,25 @@ def main(geonum, chipType, allSamples, output, viz=None):
 
     runBash(directory)
 
-    if allSamples == False:
-        files = [(x,x) for x in samplelist]
-        #else introduce a way for user to select files
-        return files
-    else:
-        viz_py.main(viz, directory, output + "_" + geonum, output)
+##    if allSamples == False:
+##        files = [(x,x) for x in samplelist]
+##        #else introduce a way for user to select files
+##        return files
+##    else:
+##        viz_py.main(viz, directory, output + "_" + geonum, output)
 
-    sys.out.close()
+    end = time.time()
+    print("Time elapsed: " + str(end-start))
+
+    sys.stdout = ogstdout
+    f.close()
 
 
 if __name__ == '__main__':
     geonum = sys.argv[1]
-    userdirect = sys.argv[2]
-    chipType = sys.argv[3]
-    output = sys.argv[4]
-    allSamples = sys.argv[5]
-
-##    geonum = 'GSE67660'
-##    output='lung_cancer_tumor.vcf'
-##    chipType = 'human_omni'
-##    userdirect = "/mnt/d/visualization_pipeline/data/"
-##    allSamples = True
-    directory = userdirect+geonum
+    chipType = sys.argv[2]
+    output = sys.argv[3]
+    allSamples = sys.argv[4]
 
     main(geonum, chipType, allSamples, output)
 
