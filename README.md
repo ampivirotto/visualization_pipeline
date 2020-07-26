@@ -19,8 +19,7 @@ Documentation:
 
 		To run the website: 
 			Activate the virtual environment: 
-				source venv/bin/activate
-				or for windows: venv\Scripts\activate
+				venv\Scripts\activate
 			Tell Flask where to find the webpage file:
 				export FLASK_APP=webpage_test.py
 				or for windows set FLASK_APP=webpage_test.py
