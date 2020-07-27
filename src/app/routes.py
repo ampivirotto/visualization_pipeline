@@ -15,7 +15,7 @@ def analysis():
     if form.validate_on_submit():
         flash("Data Submitted with GEO {} and ChipType {} for the graphs: {}".format(form.geoaccession.data, form.chipType.data, form.viz_options.data))
         flash('Use all the samples? {}'.format(form.samples.data))
-        files = pp.main(form.geoaccession.data, form.chipType.data, form.samples.data, form.output.data)
+        files = pp.main(form.geoaccession.data, form.chipType.data, form.samples.data, form.output.data, form.viz_options.data)
         return redirect('/data')
     return render_template('analysis.html', title='Data Analysis', form=form)
 

@@ -5,7 +5,7 @@ import subprocess
 import sys
 import time
 import pickle
-import visualization as viz_py
+import pipeline.visualization as viz_py
 
 def identifyChip(chipType):
     """
@@ -129,27 +129,9 @@ def main(geonum, chipType, allSamples, output, viz=None):
     if allSamples == False:
         files = [(x,x) for x in samplelist]
         #else introduce a way for user to select files
-        return files
     else:
         viz_py.main(viz, directory, output + "_" + geonum, output)
 
     sys.out.close()
-
-
-if __name__ == '__main__':
-    geonum = sys.argv[1]
-    userdirect = sys.argv[2]
-    chipType = sys.argv[3]
-    output = sys.argv[4]
-    allSamples = sys.argv[5]
-
-##    geonum = 'GSE67660'
-##    output='lung_cancer_tumor.vcf'
-##    chipType = 'human_omni'
-##    userdirect = "/mnt/d/visualization_pipeline/data/"
-##    allSamples = True
-    directory = userdirect+geonum
-
-    main(geonum, chipType, allSamples, output)
 
 
