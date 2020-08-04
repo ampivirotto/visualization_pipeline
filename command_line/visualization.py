@@ -14,6 +14,8 @@ import ipyrad.analysis as ipa
 import pandas as pd
 import os
 from collections import defaultdict
+import file_parser as fp
+import sys
 
 
 def randColor(num, pops):
@@ -173,97 +175,6 @@ def prepData(directory, outfn, newVCF, samples, bs):
 
     return gn, callset
 
-def retrieveMetaData(samples, directory, outfn):
-    ## make empty dictionary
-    metadata = {}
-
-    if samples is None:
-        samples = [ f.name for f in os.scandir(directory) if f.is_dir() ]
-
-    remove = []
-    for x in range(len(samples)-1):
-        try:
-            if not samples[x].startswith("GS"):
-                remove.append(samples[x])
-        except:
-            print("ERROR")
-    for removal in remove:
-        samples.remove(removal)
-
-    ## loop through all samples included in vcf
-
-    counter = 0
-    cols = []
-    for sample in samples:
-        metalist = []
-        for file in os.listdir(directory + "/" + sample):
-            if file.endswith(".txt"):
-                with open(directory + "/" + sample + "/" + file) as f:
-                    for line in f:
-                        if line.startswith(" - character"):
-                            temp = line.strip('\n').split(":")
-                            #print(line)
-
-                            empty = []
-                            for x in range(0, len(temp)-1):
-                                temp[x] = temp[x] + ":"
-                            for item in temp:
-                                if item.startswith(" - "):
-                                    continue
-                                else:
-                                    xx = item.split(",")
-                                    for x in xx:
-                                        empty.append(x.lstrip())
-                            for val in range(0, len(empty)):
-                                if counter == 0:
-                                    if empty[val].endswith(":"):
-                                        cols.append(empty[val].strip(":"))
-                                        location = cols.index(empty[val].strip(":"))
-                                    else:
-                                        try:
-                                            metalist.insert(location, metalist[location] + "," + empty[val])
-                                            metalist.pop()
-                                        except IndexError:
-                                            metalist.insert(location, empty[val])
-                                else:
-                                    if empty[val].endswith(":"):
-                                        if empty[val].strip(":") in cols:
-                                            location = cols.index(empty[val].strip(":"))
-                                        else:
-                                            cols.append(empty[val].strip(":"))
-                                            location = cols.index(empty[val].strip(":"))
-                                    else:
-                                        try:
-                                            metalist.insert(location, metalist[location] + "," + empty[val])
-                                            metalist.pop()
-                                        except IndexError:
-                                            metalist.insert(location, empty[val])
-                        elif line.startswith(" - source"):
-                            if counter == 0:
-                                cols.append('source')
-                            line = line.split(" : ")
-                            location = cols.index('source')
-                            metalist.insert(location, line[1].strip())
-                        elif line.startswith(" - supp"):
-                            if counter == 0:
-                                cols.append('id')
-                            line = line.split(" : ")
-                            files = line[1].split(",")
-                            parts = files[1].split("/")
-                            name = parts[8][:-13]
-                            location = cols.index('id')
-                            metalist.insert(location, name)
-
-
-
-                metadata[sample] = metalist
-                counter += 1
-                break
-
-
-    df = pd.DataFrame.from_dict(metadata, orient='index', columns=cols)
-    df.to_csv(outfn + ".csv")
-    return df
 
 def LD(directory, outfn, newVCF=False, samples = None, bs = 20000):
     """
@@ -305,8 +216,7 @@ def pca(directory, outfn, column, newVCF=False, samples = None, bs = 20000):
     gn = transform(g)
 
     ## get metadata
-    #df = retrieveMetaData(samples, directory, outfn)
-    df = pd.read_csv(directory + "canine_subset_7_8.csv")
+    df = fp.retrieveMetaData(samples, directory, outfn)
 
     coords1, model1 = allel.pca(gn, n_components=10, scaler='patterson')
 
@@ -314,67 +224,9 @@ def pca(directory, outfn, column, newVCF=False, samples = None, bs = 20000):
 
 
 
-def makeDATFile(pos, gt, chrm, typecount, snpdensity, directory, outfn, typel):
-
-    ## creat empty dictionary to store the varaints per chromosome
-    typedict = {}
-
-    ## add all chromosomes to the dictionary
-    for chrnum in range(1, 23):
-        typedict[chrnum] = []
-    typedict['X'] = []
-    typedict['Y'] = []
-    typedict['MT'] = []
-
-    ## add variants with with item from count to temp dictionary
-    for x in range(len(pos)):
-        temp ={pos[x]:typecount[x]}
-        try:
-            typedict[int(chrm[x])].append(temp)
-        except:
-            typedict[chrm[x]].append(temp)
-
-    ## bin them based on original dat file
-    ## To change allow user to differ these bin sizes for different tracts
-    chrnm = snpdensity[0]
-    start = snpdensity[1]
-    end = snpdensity[2]
-    typelist = []
-
-    for x in range(len(start)):
-        total = 0
-        counter = 0
-        try:
-            snps = typedict[int(chrnm[x][2:])]
-        except:
-            snps = typedict[chrnm[x][2:]]
-        for var in snps:
-            try:
-                pos = list(var.keys())[0]
-                if pos < end[x]:
-                    if pos > start[x]:
-                        total+= list(var.values())[0]
-                        counter+=1
-                else:
-                    break
-            except:
-                pos = list(var.keys())[0]
-        if total ==0 and counter == 0:
-            typelist.append(0)
-        else:
-            try:
-                typelist.append(total/counter)
-            except:
-                print("ERROR")
-
-    ## take the snpdensity file and drop snp density and add heterozygosity
-    snpdensity.drop([3], axis=1)
-    snpdensity[3] = typelist
-    snpdensity.to_csv(directory + outfn + "_" + typel + ".dat", index=False, header=False, sep="\t")
-
 def fst(g, directory, outfn, samplelist):
     ## get subpops - dataframe
-    df = retrieveMetaData(None, directory, outfn)
+    df = fp.retrieveMetaData(None, directory, outfn)
 
     #test
     #print(df)
@@ -424,11 +276,11 @@ def circos(directory, outfn, vcffile):
     ##test fst
     samplelist = callset['samples']
     fstlist = fst(gt, directory, outfn, samplelist)
-    makeDATFile(pos, gt, chrm, fstlist, snpdensity, directory, outfn, 'fst')
+    fp.makeDATFile(pos, gt, chrm, fstlist, snpdensity, directory, outfn, 'fst')
 
     ## count the heterozygoes for each pos
     hetcount = gt.count_het(axis=1)
-    makeDATFile(pos, gt, chrm, hetcount, snpdensity, directory, outfn, 'het')
+    fp.makeDATFile(pos, gt, chrm, hetcount, snpdensity, directory, outfn, 'het')
 
 
 
@@ -462,6 +314,18 @@ def singleChr():
     plt.ylabel(" Number of Heterozygotes ")
     plt.savefig(directory + "/" + outfn + "_het.png")
 
+def heatmap(directory, outfn, vcffile, logfile):
+
+    ## calculate relatedness via vcftools
+    subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn], stdout = logfile)
+    relFile = directory + "/" + outfn + ".relatedness2"
+
+    ## call file parser to turn into csv
+    fp.transposeRel(directory, relFile)
+    matrixfile = directory + "/" + outfn + ".csv"
+
+    ## call R script
+    subprocess.Popen(['Rscript', '--vanilla', 'pipeline/heatmap.R', directory, matrixfile, directory + "/" + outfn + "_heatmap.jpg"])
 
 def main(viz_options, directory, outfn, vcffile):
     if 'circos' in viz_options:
@@ -473,25 +337,12 @@ def main(viz_options, directory, outfn, vcffile):
         pca(directory, outfn, 'ethnic group')
     if 'heatmap' in viz_options:
         ## call R script
-        print('error')
+        heatmap(directory, outfn, vcffile, logfile)
 
+if __name__ == '__main__':
+    directory = sys.argv[1]
+    vcffile = sys.argv[2]
+    outfn = sys.argv[3]
+    viz_options = [sys.argv[4]]
 
-## TESTING ###
-#pca("../../data/GSE74100/", 'myanmar_population_structure_GSE74100', 'ethnic group')
-#circos("../../data/GSE74100/", 'GSE74100', "myanmar_population_structure_GSE74100")
-#retrieveMetaData(None, '../../data/GSE74100/', 'GSE74100')
-#sfs("../../data/GSE74100/", "myanmar_population_structure_GSE74100")
-
-##listdf = []
-##directs = ['GSE96736', 'GSE90441', 'GSE83160', 'GSE70454']
-##for x in directs:
-##    df = retrieveMetaData(None, '/mnt/d/visualization_pipeline/data/' + x + "/", x)
-##    listdf.append(df)
-##
-##df_all = pd.concat(listdf, sort=False)
-##
-##df_all.to_csv("../data/sardinia_canine_allSamples.csv", index=False)
-
-pca("../data/", 'subset_7_8.recode', 'breed')
-
-#runConversion('sardinia_canine_allSamples', '../data/sardinia_canine_allsamples.vcf', 10000)
+    main(viz_options, directory, outfn, vcffile)
