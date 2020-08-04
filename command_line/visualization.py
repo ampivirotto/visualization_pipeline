@@ -327,14 +327,14 @@ def heatmap(directory, outfn, vcffile, logfile):
     ## call R script
     subprocess.Popen(['Rscript', '--vanilla', 'pipeline/heatmap.R', directory, matrixfile, directory + "/" + outfn + "_heatmap.jpg"])
 
-def main(viz_options, directory, outfn, vcffile):
+def main(viz_options, directory, outfn, vcffile, colname):
     if 'circos' in viz_options:
         circos(directory, outfn, vcffile)
     if 'sfs' in viz_options:
         sfs(directory, vcffile)
     if 'pca' in viz_options:
         ## needs to be changed to allow user to select column
-        pca(directory, outfn, 'ethnic group')
+        pca(directory, outfn, colname)
     if 'heatmap' in viz_options:
         ## call R script
         heatmap(directory, outfn, vcffile, logfile)
