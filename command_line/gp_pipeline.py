@@ -1,16 +1,13 @@
-import GEOparse
-import os
-import wget
-import subprocess
-import sys
-import time
-import pickle
+import GEOparse, os, wget, subprocess, sys, time, pickle
+
 #import visualization as viz_py
 
 def identifyChip(chipType):
     """
     used to identify the associated chip files based on user input
     """
+    '''
+    #this part didn't work; illumina_dict.pickle not found
     with open('../illumina_files/illumina_dict.pickle', "rb") as f:
         chipDict = pickle.load(f)
 
@@ -21,7 +18,8 @@ def identifyChip(chipType):
     print('CSV: ' + values[2] + '\n')
 
     return values[0], values[1], values[2]
-
+    '''
+    return 'CanineHD_B.bpm', 'CanineHD_A.egt', 'CanineHD_B.csv'
 def checkDir(directory):
     """
     identify whether the dictionary exists or not - if it doens't make one
@@ -115,14 +113,14 @@ def runBash(directory):
     ## run bash files
     file = directory + "/final.sh"
     #command = "bash " + file
-    subprocess.call(['dos2unix', file])
+    subprocess.call(['dos2unix', file]) #does not work in linux
     subprocess.call(['bash', file])
 
 def main(geonum, chipType, allSamples, output, viz=None):
 
     start = time.time()
 
-    directory = "/mnt/d/visualization_pipeline/data/" + geonum
+    directory = "/content/data/" + geonum
 
     ogstdout, f = checkDir(directory)
 
