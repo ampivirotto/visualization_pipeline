@@ -1,6 +1,6 @@
 
-ref='/mnt/d/visualization_pipeline/reference/Canis_familiaris.BROADD2.67.dna.toplevel.fa'
-export BCFTOOLS_PLUGINS="/home/tuk32868/bin"  ## make sure plugins are set 
+ref='/content/reference/canFam3.fa'
+#export BCFTOOLS_PLUGINS="/home/tuk32868/bin"  ## make sure plugins are set 
 
 cd $direct  ## change to main directory with files 
 gunzip *.gz  ## unzip all the files 
@@ -39,7 +39,7 @@ done
 
 for f in */                             ## for each subdirectory 
 do
-	mono /home/tuk32868/bin/autoconvert/AutoConvert.exe $direct/$f $direct/$f /mnt/d/visualization_pipeline/illumina_files/$bpm /mnt/d/visualization_pipeline/illumina_files/$egt  ## run autoconvert software
+	/content/iaap-cli/./iaap-cli gencall $direct/$f $direct/$f /content/illumina_files/$bpm /content/illumina_files/$egt /content/data  ## run iaap-cli software
 done
 
 
@@ -47,5 +47,5 @@ done
 find . -type f | while read name; do [[ $name == *.gtc ]] && echo $name; done > filelist.txt  
 
 ### call gtc2vcf using file just used 
-bcftools +gtc2vcf --no-version -Ob -b /mnt/d/visualization_pipeline/illumina_files/$bpm -c /mnt/d/visualization_pipeline/illumina_files/$csv -e /mnt/d/visualization_pipeline/illumina_files/$egt -g $direct/filelist.txt -f $ref -x $direct/$output.sex -v --do-not-check-bpm | bcftools sort -Ou -T ./bcftools-sort.XXXX | bcftools norm --no-version -Ob -o $direct/$output.bcf -c x -f $ref && bcftools index -f $direct/$output.bcf
+bcftools +gtc2vcf --no-version -Ob -b /content/illumina_files/$bpm -c /content/illumina_files/$csv -e /content/illumina_files/$egt -g $direct/filelist.txt -f $ref -x $direct/$output.sex -v --do-not-check-bpm | bcftools sort -Ou -T ./bcftools-sort.XXXX | bcftools norm --no-version -Ob -o $direct/$output.bcf -c x -f $ref && bcftools index -f $direct/$output.bcf
 
