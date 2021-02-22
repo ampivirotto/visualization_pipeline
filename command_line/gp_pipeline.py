@@ -1,5 +1,5 @@
 import GEOparse, os, wget, subprocess, sys, time, pickle
-from change_idat_names import change_idat_names
+
 #import visualization as viz_py
 
 def identifyChip(chipType):
@@ -110,6 +110,7 @@ def runBash(directory):
     run bash file just created
     TO DO: make bash read.me to describe what it does
     '''
+    
     ## run bash files
     file = directory + "/final.sh"
     #command = "bash " + file
@@ -119,16 +120,17 @@ def runBash(directory):
 def main(geonum, chipType, allSamples, output, viz=None):
 
     start = time.time()
-
+    
     directory = "/content/data/" + geonum
 
     ogstdout, f = checkDir(directory)
-
+    
     bpm, egt, csv = identifyChip(chipType)
-
+    
+    print('retrieveGEOFiles')
     samplelist = retrieveGEOFiles(geonum, directory)
     
-    change_idat_names(geonum) #changes idat names to be compatible with iaap-cli
+    
     
     makeBashFile(directory, bpm, csv, egt, output)
 
@@ -148,12 +150,12 @@ def main(geonum, chipType, allSamples, output, viz=None):
     f.close()
 
 
-if __name__ == '__main__':
-    geonum = sys.argv[1]
-    chipType = sys.argv[2]
-    output = sys.argv[3]
-    allSamples = sys.argv[4]
 
-    main(geonum, chipType, allSamples, output)
+geonum = sys.argv[1]
+chipType = sys.argv[2]
+output = sys.argv[3]
+allSamples = sys.argv[4]
+
+main(geonum, chipType, allSamples, output)
 
 
