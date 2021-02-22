@@ -50,4 +50,11 @@ find . -type f | while read name; do [[ $name == *.gtc ]] && echo $name; done > 
 
 ### call gtc2vcf using file just used 
 bcftools +gtc2vcf --no-version -Ob -b /content/illumina_files/$bpm -c /content/illumina_files/$csv -e /content/illumina_files/$egt -g $direct/filelist.txt -f $ref -x $direct/$output.sex -v --do-not-check-bpm | bcftools sort -Ou -T ./bcftools-sort.XXXX | bcftools norm --no-version -Ob -o $direct/$output.bcf -c x -f $ref && bcftools index -f $direct/$output.bcf
+### convert bcf to vcf
+bcftools view *.bcf -Ov --output $direct/$output.vcf && printf "Converted bcf to vcf\n"
+### bgzip the vcf
+bgzip -c *.vcf > $direct/$output.vcf.gz && printf "Bgzipped the vcf\n"
+### index bgzipped vcf with tabix
+tabix -p vcf *vcf.gz && printf "Indexed the bgzipped vcf with tabix\n"
 
+printf "Done ( ͡° ͜ʖ ͡°)"
