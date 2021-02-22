@@ -40,7 +40,7 @@ done
 for f in */                             ## for each subdirectory 
 do
     python /content/visualization_pipeline/command_line/change_idat_names2.py GSE143824
-	/content/iaap-cli/./iaap-cli gencall $direct/$f $direct/$f /content/illumina_files/$bpm /content/illumina_files/$egt /content/data  ## run iaap-cli software
+	/content/iaap-cli/./iaap-cli gencall /content/illumina_files/$bpm /content/illumina_files/$egt ./ -f ./ -g  ## run iaap-cli software
 done
 
 
