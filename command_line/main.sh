@@ -39,7 +39,8 @@ done
 
 for f in */                             ## for each subdirectory 
 do
-    python /content/visualization_pipeline/command_line/change_idat_names2.py GSE143824
+    
+    python /content/visualization_pipeline/command_line/change_idat_names2.py $(pwd | grep -P 'data\/\w+' -o | cut -d'/' -f 2)
 	/content/iaap-cli/./iaap-cli gencall /content/illumina_files/$bpm /content/illumina_files/$egt ./ -f ./ -g  ## run iaap-cli software
 done
 
