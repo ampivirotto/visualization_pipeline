@@ -1,6 +1,7 @@
 #! /usr/bin/Rscript
-install.packages("vioplot")
-install.packages("gplots")
+
+install.packages("vioplot",repos = "http://cran.us.r-project.org")
+install.packages("gplots",repos = "http://cran.us.r-project.org")
 library(vioplot)
 library(gplots)
 
