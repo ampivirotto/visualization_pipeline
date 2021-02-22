@@ -14,7 +14,9 @@ def transposeRel(directory, relFile):
     with open(relFile) as f:
         
         for line in f:
+            #print(line)
             if line.startswith("GSM"):
+                #print(line)
                 splitline = line.split("\t")
                 try:
                     indexnum = cols.index(splitline[1])
@@ -32,6 +34,7 @@ def transposeRel(directory, relFile):
 
     ## turn into df and csv
     df = pd.DataFrame.from_dict(maindict, orient='index', columns=cols)
+    print(cols)
     filename = relFile.strip(".relatedness2")
     df.to_csv(filename + ".csv")
 
