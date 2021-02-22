@@ -3,7 +3,7 @@ def change_idat_names(accession):
     '''iaap-cli only accepts IDAT files in the form of XXXX_XXXX_Grn.idat or XXXX_XXXX_Red.idat
         This function renames them to work with iaap-cli. accession is the GEO accession number.'''
     
-    print('changing idat names')
+    #print('changing idat names')
     directory = '/content/data/' + accession + '/'
     #os.chdir(directory)    
     sample_folders = [i for i in os.listdir(directory) if os.path.isdir(directory + i)]
