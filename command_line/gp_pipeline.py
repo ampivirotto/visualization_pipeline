@@ -1,5 +1,5 @@
 import GEOparse, os, wget, subprocess, sys, time, pickle
-
+from change_idat_names import change_idat_names
 #import visualization as viz_py
 
 def identifyChip(chipType):
@@ -127,7 +127,9 @@ def main(geonum, chipType, allSamples, output, viz=None):
     bpm, egt, csv = identifyChip(chipType)
 
     samplelist = retrieveGEOFiles(geonum, directory)
-
+    
+    change_idat_names(geonum) #changes idat names to be compatible with iaap-cli
+    
     makeBashFile(directory, bpm, csv, egt, output)
 
     runBash(directory)
