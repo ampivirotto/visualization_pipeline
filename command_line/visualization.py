@@ -1,5 +1,5 @@
-import allel; print('scikit-allel', allel.__version__)
-import random
+#import allel; print('scikit-allel', allel.__version__)
+import random, subprocess
 random.seed(14)
 import time
 import numpy as np
@@ -10,7 +10,7 @@ import seaborn as sns
 sns.set_style('white')
 sns.set_style('ticks')
 import bcolz
-import ipyrad.analysis as ipa
+#import ipyrad.analysis as ipa
 import pandas as pd
 import os
 from collections import defaultdict
@@ -317,7 +317,8 @@ def singleChr():
 def heatmap(directory, outfn, vcffile, logfile):
 
     ## calculate relatedness via vcftools
-    subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn], stdout = logfile)
+    #subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn], stdout = logfile)
+    subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn])
     relFile = directory + "/" + outfn + ".relatedness2"
 
     ## call file parser to turn into csv
@@ -325,7 +326,7 @@ def heatmap(directory, outfn, vcffile, logfile):
     matrixfile = directory + "/" + outfn + ".csv"
 
     ## call R script
-    subprocess.Popen(['Rscript', '--vanilla', 'pipeline/heatmap.R', directory, matrixfile, directory + "/" + outfn + "_heatmap.jpg"])
+    subprocess.Popen(['Rscript', '--vanilla', '/content/visualization_pipeline/command_line/heatmap.R', directory, matrixfile, directory + "/" + outfn + "_heatmap.jpg"])
 
 def main(viz_options, directory, outfn, vcffile, colname):
     if 'circos' in viz_options:
@@ -337,7 +338,7 @@ def main(viz_options, directory, outfn, vcffile, colname):
         pca(directory, outfn, colname)
     if 'heatmap' in viz_options:
         ## call R script
-        heatmap(directory, outfn, vcffile, logfile)
+        heatmap(directory, outfn, vcffile, '')
 
 if __name__ == '__main__':
     directory = sys.argv[1]
@@ -345,4 +346,4 @@ if __name__ == '__main__':
     outfn = sys.argv[3]
     viz_options = [sys.argv[4]]
 
-    main(viz_options, directory, outfn, vcffile)
+    main(viz_options, directory, outfn, vcffile, '')
