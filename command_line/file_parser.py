@@ -7,11 +7,16 @@ def transposeRel(directory, relFile):
     ## set up dictionary
     cols = []
     maindict = defaultdict(list)
-
+    with open(relFile) as f:
+        total_samples = int(math.sqrt(len(f.read().split('\n'))-1))
+        
     ## read through output file to parse information
     with open(relFile) as f:
+        
         for line in f:
+            print(line)
             if line.startswith("GSM"):
+                print(line)
                 splitline = line.split("\t")
                 try:
                     indexnum = cols.index(splitline[1])
@@ -23,14 +28,15 @@ def transposeRel(directory, relFile):
                     maindict[splitline[0]].insert(indexnum, float(splitline[6].strip("\n")))
                     maindict[splitline[0]].pop(indexnum+1)
                 else:
-                    maindict[splitline[0]] = [math.nan for x in range(1, 241)]
+                    maindict[splitline[0]] = [math.nan for x in range(1, total_samples+1)]
                     maindict[splitline[0]].insert(indexnum, float(splitline[6].strip("\n")))
                     maindict[splitline[0]].pop(indexnum+1)
 
     ## turn into df and csv
     df = pd.DataFrame.from_dict(maindict, orient='index', columns=cols)
+    print(cols)
     filename = relFile.strip(".relatedness2")
-    df.to_csv(directory + "/" + filename + ".csv")
+    df.to_csv(filename + ".csv")
 
 
 
