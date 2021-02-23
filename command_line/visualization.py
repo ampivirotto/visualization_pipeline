@@ -203,7 +203,7 @@ def LD(directory, outfn, newVCF=False, samples = None, bs = 20000):
     plt.show()
 
 
-def pca(directory, outfn, column, newVCF=False, samples = None, bs = 20000):
+'''def pca(directory, outfn, column, newVCF=False, samples = None, bs = 20000):
     """
     main function to run pca visualization
     """
@@ -221,8 +221,10 @@ def pca(directory, outfn, column, newVCF=False, samples = None, bs = 20000):
     coords1, model1 = allel.pca(gn, n_components=10, scaler='patterson')
 
     fig_pca(directory, outfn, coords1, model1, 'Conventional PCA.', sample_population = df[column])
-
-
+'''
+def pca(directory, vcffile, outfn):
+    gds = vcffile.strip('vcf').strip('.') + '.gds'
+    subprocess.run(['Rscript', '--vanilla', 'pca.R', directory, vcffile, outfn + '.html', gds])
 
 def fst(g, directory, outfn, samplelist):
     ## get subpops - dataframe
@@ -336,7 +338,8 @@ def main(viz_options, directory, outfn, vcffile, colname):
         sfs(directory, vcffile)
     if 'pca' in viz_options:
         ## needs to be changed to allow user to select column
-        pca(directory, outfn, colname)
+        #pca(directory, outfn, colname)
+        pca(directory, vcffile, outfn)
     if 'heatmap' in viz_options:
         ## call R script
         heatmap(directory, outfn, vcffile, '')
