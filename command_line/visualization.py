@@ -319,8 +319,9 @@ def heatmap(directory, outfn, vcffile, logfile):
     ## calculate relatedness via vcftools
     #subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn], stdout = logfile)
     subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn])
+    time.sleep(4)
     relFile = directory + "/" + outfn + ".relatedness2"
-
+    time.sleep(4)
     ## call file parser to turn into csv
     fp.transposeRel(directory, relFile)
     matrixfile = directory + "/" + outfn + ".csv"
