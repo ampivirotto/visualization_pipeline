@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import math
 
+
 def transposeRel(directory, relFile):
     ## set up dictionary
     cols = []
@@ -35,7 +36,7 @@ def transposeRel(directory, relFile):
     ## turn into df and csv
     df = pd.DataFrame.from_dict(maindict, orient='index', columns=cols)
     print(cols)
-    filename = relFile.strip(".relatedness2")
+    filename = relFile.strip("relatedness2").strip('.')
     df.to_csv(filename + ".csv")
 
 
