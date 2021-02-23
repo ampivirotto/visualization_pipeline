@@ -1,5 +1,5 @@
 
-ref='/content/reference/canFam3.fa'
+ref='/content/reference/canFam2.fa'
 #export BCFTOOLS_PLUGINS="/home/tuk32868/bin"  ## make sure plugins are set 
 
 cd $direct  ## change to main directory with files 
@@ -58,3 +58,5 @@ bgzip -c *.vcf > $direct/$output.vcf.gz && printf "Bgzipped the vcf\n"
 tabix -p vcf *vcf.gz && printf "Indexed the bgzipped vcf with tabix\n"
 
 printf "Done ( ͡° ͜ʖ ͡°)"
+#last line doesn't get printed with the subprocess version to start the pipeline, so this line makes sure the real last line gets printed
+printf ""
