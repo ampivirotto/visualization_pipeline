@@ -269,7 +269,7 @@ def circos(directory, outfn, vcffile):
     snpdensity = pd.read_csv(directory + outfn + ".dat", sep='\t', header=None)
 
     ## using user input name read in vcf (either old vcf or new vcf)
-    callset = allel.read_vcf(directory + vcffile + ".vcf")
+    callset = allel.read_vcf(vcffile)
     pos = callset['variants/POS']
     chrm = callset['variants/CHROM']
 
@@ -298,10 +298,15 @@ def sfs(directory, vcffile):
     sfslist = allel.sfs(derived)
 
     xlabel = [x for x in range(1, len(sfslist)+1)]
+    plt.style.use('seaborn-darkgrid')
+    plt.plot(xlabel, list(sfslist), marker = 'o')
+    for i in range(len(xlabel)):
+        plt.text(xlabel[i], list(sfslist)[i],  str(list(sfslist)[i]), ha = 'center')
 
-    plt.plot(xlabel, list(sfslist))
     plt.xlabel("K value")
     plt.ylabel("Number of variants")
+    
+
     plt.savefig(vcffile +  "_sfs.jpg")
 
 
