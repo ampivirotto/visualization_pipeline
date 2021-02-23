@@ -1,4 +1,4 @@
-#import allel; print('scikit-allel', allel.__version__)
+import allel; print('scikit-allel', allel.__version__)
 import random, subprocess
 random.seed(14)
 import time
@@ -288,7 +288,7 @@ def circos(directory, outfn, vcffile):
 
 def sfs(directory, vcffile):
     ### create a Site Frequency Spectrum Figure
-    callset = allel.read_vcf(directory + vcffile + ".vcf")
+    callset = allel.read_vcf(vcffile)
 
     gt = allel.GenotypeArray(callset['calldata/GT'])
     ac = gt.count_alleles()[:]
@@ -302,7 +302,7 @@ def sfs(directory, vcffile):
     plt.plot(xlabel, list(sfslist))
     plt.xlabel("K value")
     plt.ylabel("Number of variants")
-    plt.savefig(directory + "/" + vcffile +  "_sfs.jpg")
+    plt.savefig(vcffile +  "_sfs.jpg")
 
 
 def singleChr():
