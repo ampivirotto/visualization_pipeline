@@ -335,6 +335,9 @@ def heatmap(directory, outfn, vcffile, logfile):
 
     ## call R script
     subprocess.Popen(['Rscript', '--vanilla', '/content/visualization_pipeline/command_line/heatmap.R', directory, matrixfile, directory + "/" + outfn + "_heatmap.jpg"])
+def tree(directory, vcffile, outfn):
+    subprocess.run(['vk','phylo','tree','upgma', vcffile, '>','tree.nwk'])
+    subprocess.run(['Rscript','--vanilla','tree_maker.R', directory+'/tree.nwk', directory, outfn+'_tree.png'])
 
 def main(viz_options, directory, outfn, vcffile, colname):
     if 'circos' in viz_options:
@@ -348,7 +351,8 @@ def main(viz_options, directory, outfn, vcffile, colname):
     if 'heatmap' in viz_options:
         ## call R script
         heatmap(directory, outfn, vcffile, '')
-
+    if 'tree' in viz_options:
+        tree(directory, vcffile, outfn)
 if __name__ == '__main__':
     directory = sys.argv[1]
     vcffile = sys.argv[2]
