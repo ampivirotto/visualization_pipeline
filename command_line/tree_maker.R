@@ -19,7 +19,10 @@ library(ggtree)
 
 args = commandArgs(trailingOnly=TRUE)
 
+setwd(args[2])
+
 png("tree.png")
 tree <- read.tree(args[1])
 labeled_tree <- ggtree(tree) + geom_tiplab()
+labeled_tree
 dev.off()
