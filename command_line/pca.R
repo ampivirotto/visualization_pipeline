@@ -40,6 +40,13 @@ tab <- data.frame(sample.id = pca$sample.id,
 #scatter3D(tab$EV2,tab$EV1,tab$EV3) #3D scatterplot
 fig <- plot_ly(tab, x=~EV2, y=~EV1, z=~EV3, name = ~sample.id) #create interactive 3D plot
 
+fig <- fig %>% layout(
+    title = "PCA",
+    scene = list(
+      xaxis = list(title = paste("EV1:", round(pc.percent[1], 2), "%")),
+      yaxis = list(title = paste("EV1:", round(pc.percent[2], 2), "%"))),
+      zaxis = list(title = paste("EV1:", round(pc.percent[3], 2), "%")))
+    ))
 fig #show plot
 #htmlwidgets::saveWidget(as_widget(fig), args[3])
 htmlwidgets::saveWidget(fig, args[3])
