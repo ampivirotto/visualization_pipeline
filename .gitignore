@@ -1,6 +1,6 @@
 data/*
 ignored/
-illumina_files/*
+illumina_files/files/*
 flask_docker_demo/
 src/webfacing.py
 src/Dockerfile
