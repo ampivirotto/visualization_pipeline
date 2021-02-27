@@ -1,5 +1,6 @@
 
-ref='/content/reference/canFam2.fa'
+#ref='/content/reference/canFam2.fa'
+ref='/content/visualization_pipeline/command_line/igv.js-flask/igvjs/static/data/public/canFam2.fa'
 #export BCFTOOLS_PLUGINS="/home/tuk32868/bin"  ## make sure plugins are set 
 
 cd $direct  ## change to main directory with files 
