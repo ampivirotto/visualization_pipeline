@@ -300,8 +300,10 @@ def sfs(directory, vcffile):
     xlabel = [x for x in range(1, len(sfslist)+1)]
     plt.style.use('seaborn-darkgrid')
     plt.plot(xlabel, list(sfslist), marker = 'o')
+    '''
     for i in range(len(xlabel)):
         plt.text(xlabel[i], list(sfslist)[i],  str(list(sfslist)[i]), ha = 'center')
+    '''
 
     plt.xlabel("K value")
     plt.ylabel("Number of variants")
@@ -335,9 +337,82 @@ def heatmap(directory, outfn, vcffile, logfile):
 
     ## call R script
     subprocess.Popen(['Rscript', '--vanilla', '/content/visualization_pipeline/command_line/heatmap.R', directory, matrixfile, directory + "/" + outfn + "_heatmap.jpg"])
+
+def interactive_heatmap(directory, outfn, vcffile):
+    ## calculate relatedness via vcftools
+    subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn])
+    time.sleep(4)
+    relFile = directory + "/" + outfn + ".relatedness2"
+    time.sleep(4)
+    ## call file parser to turn into csv
+    fp.transposeRel(directory, relFile)
+    matrixfile = directory + "/" + outfn + ".csv"
+
+    subprocess.Popen(['Rscript', '--vanilla', '/content/visualization_pipeline/command_line/interactive_heatmap.R', directory, matrixfile])
+
 def tree(directory, vcffile, outfn):
     subprocess.run(['vk','phylo','tree','upgma', vcffile, '>','tree.nwk'])
     subprocess.run(['Rscript','--vanilla','tree_maker.R', directory+'/tree.nwk', directory, outfn+'_tree.png'])
+
+def base_changes(directory, vcffile, outfn):
+    process = subprocess.run(['bcftools', 'stats', vcffile], stdout = subprocess.PIPE, stderr=subprocess.STDOUT)
+    output = process.stdout
+    output = output.decode("utf-8").split('\n')
+    subs = output[47:59]
+    subs = [i.split('\t') for i in subs]
+    subs = [i[2:] for i in subs]
+    A, C, G, T = subs[:3], subs[3:6], subs[6:9], subs[9:]
+    A = [int(i[1]) for i in A]
+    A.insert(0, 0)
+    C = [int(i[1]) for i in C]
+    C.insert(1,0) 
+    G = [int(i[1]) for i in G] 
+    G.insert(2,0)
+    T = [int(i[1]) for i in T]
+    T.insert(3,0)
+
+    bars1, bars2, bars3, bars4 = [A[0],C[0],G[0],T[0]], [A[1],C[1],G[1],T[1]], [A[2],C[2],G[2],T[2]], [A[3],C[3],G[3],T[3]]
+    barWidth = 0.15
+    r1 = np.arange(len(bars1))
+    r2 = [x + barWidth for x in r1]
+    r3 = [x + barWidth for x in r2]
+    r4 = [x + barWidth for x in r3]
+
+    # Make the plot
+    plt.bar(r1, bars1, color='green', width=barWidth, edgecolor='white', label='A')
+    plt.bar(r2, bars2, color='orange', width=barWidth, edgecolor='white', label='C')
+    plt.bar(r3, bars3, color='blue', width=barWidth, edgecolor='white', label='G')
+    plt.bar(r4, bars4, color='red', width=barWidth, edgecolor='white', label='T')
+    
+    # Add xticks on the middle of the group bars
+    plt.xlabel('Reference Base', fontweight='bold')
+    plt.ylabel('Number of Changes', fontweight='bold')
+    plt.title('Base Substitutions', fontweight='bold')
+    plt.xticks([r + barWidth for r in range(len(bars1))], ['A', 'C', 'G', 'T'])
+    
+    # Create legend & Show graphic
+    plt.legend()
+    plt.style.use('seaborn-dark')
+    plt.savefig(directory + '/' + outfn + '_baseChanges.png')
+
+def tstv(directory, vcffile, outfn):
+    process = subprocess.run(['bcftools', 'stats', vcffile], stdout = subprocess.PIPE, stderr=subprocess.STDOUT)
+    output = process.stdout
+    output = output.decode("utf-8").split('\n')
+    line = output[33]
+    ts, tv, tstv = line.split('\t')[2], line.split('\t')[3], line.split('\t')[4]
+
+    # Pie chart, where the slices will be ordered and plotted counter-clockwise:
+    labels = 'Ts', 'Tv'
+    sizes = [ts, tv]
+    explode = (0.1, 0)
+
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%',
+            shadow=True, startangle=90)
+    ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    ax1.set_title('Ts/Tv = ' + str(tstv))
+    plt.savefig(directory + '/' + outfn + '_tstv.png')
 
 def main(viz_options, directory, outfn, vcffile, colname):
     if 'circos' in viz_options:
@@ -348,11 +423,18 @@ def main(viz_options, directory, outfn, vcffile, colname):
         ## needs to be changed to allow user to select column
         #pca(directory, outfn, colname)
         pca(directory, vcffile, outfn)
+    if 'interactive_heatmap' in viz_options:
+        interactive_heatmap(directory, outfn, vcffile)
     if 'heatmap' in viz_options:
         ## call R script
         heatmap(directory, outfn, vcffile, '')
     if 'tree' in viz_options:
         tree(directory, vcffile, outfn)
+    if 'base_changes' in viz_options:
+        base_changes(directory,vcffile,outfn)
+    if 'Ts/Tv' in viz_options:
+        tstv(directory,vcffile,outfn)
+    
 if __name__ == '__main__':
     directory = sys.argv[1]
     vcffile = sys.argv[2]
