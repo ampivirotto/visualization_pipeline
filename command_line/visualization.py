@@ -351,7 +351,8 @@ def interactive_heatmap(directory, outfn, vcffile):
     subprocess.Popen(['Rscript', '--vanilla', '/content/visualization_pipeline/command_line/interactive_heatmap.R', directory, matrixfile])
 
 def tree(directory, vcffile, outfn):
-    subprocess.run(['vk','phylo','tree','upgma', vcffile, '>','tree.nwk'])
+    f = open(directory +'/tree.nwk', 'w')
+    subprocess.run(['vk','phylo','tree','upgma', vcffile], stdout = f)
     subprocess.run(['Rscript','--vanilla','tree_maker.R', directory+'/tree.nwk', directory, outfn+'_tree.png'])
 
 def base_changes(directory, vcffile, outfn):
