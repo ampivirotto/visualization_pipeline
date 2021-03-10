@@ -23,6 +23,6 @@ setwd(args[2])
 
 png(args[3])
 tree <- read.tree(args[1])
-labeled_tree <- ggtree(tree) + geom_tiplab()
+labeled_tree <- ggtree(tree) +  xlim(0, 0.32) + geom_tiplab()
 labeled_tree
 dev.off()
