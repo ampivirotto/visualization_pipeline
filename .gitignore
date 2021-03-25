@@ -8,3 +8,7 @@ src/requirements.txt
 src/pipeline/test.log
 src/pipeline/illumina_files/*
 reference/*
+genes_canFam/*
+rejects_canFam2.jpg
+rejects_canFam3.jpg
+software/*
