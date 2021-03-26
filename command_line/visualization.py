@@ -57,15 +57,6 @@ def makeVCF(directory, samples, outfn):
 
     ## run the gtc2vcf conversion
 
-def runConversion(outfn, vcffile, bs):
-    """
-    convert from vcf to hdf5 format
-    """
-    #init converter  https://ipyrad.readthedocs.io/en/latest/API-analysis/cookbook-vcf2hdf5.html
-    converter = ipa.vcf_to_hdf5(name=outfn, data=vcffile, ld_block_size=bs)
-
-    #run converter
-    converter.run()
 
 def plot_ld(gn, title):
     m = allel.rogers_huff_r(gn) ** 2
@@ -161,12 +152,7 @@ def prepData(directory, outfn, newVCF, samples, bs):
 
     vcffile = directory + outfn + ".vcf"
 
-    runConversion(outfn, vcffile, bs)
-
-    callsetfn = directory + 'analysis-vcf2hdf5/' + outfn + ".snps.hdf5"
-    callset = h5py.File(callsetfn, mode= 'r')
-
-    #callset = allel.read_vcf(vcffile)
+    callset = allel.read_vcf(vcffile)
 
     #get genotype data
     g = allel.GenotypeChunkedArray(callset['genos'])
@@ -464,10 +450,11 @@ def main(viz_options, directory, outfn, vcffile, colname):
     if 'Ts/Tv' in viz_options:
         tstv(directory,vcffile,outfn)
 
+        
 if __name__ == '__main__':
     directory = sys.argv[1]
     vcffile = sys.argv[2]
     outfn = sys.argv[3]
     viz_options = [sys.argv[4]]
 
-    main(viz_options, directory, outfn, vcffile)
+    main(viz_options, directory, outfn, vcffile, '')

@@ -1,6 +1,9 @@
 #! /usr/bin/Rscript
-install.packages("vioplot")
-install.packages("gplots")
+list.of.packages <- c("gplots", "vioplot")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages, ,repos = "http://cran.us.r-project.org")
+#install.packages("vioplot",repos = "http://cran.us.r-project.org")
+#install.packages("gplots",repos = "http://cran.us.r-project.org")
 library(vioplot)
 library(gplots)
 

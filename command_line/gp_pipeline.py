@@ -153,6 +153,3 @@ output = sys.argv[3]
 allSamples = sys.argv[4]
 
 main(geonum, chipType, allSamples, output)
-
-
-

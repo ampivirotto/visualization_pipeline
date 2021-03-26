@@ -1,6 +1,7 @@
 
-ref='/mnt/d/visualization_pipeline/reference/Canis_familiaris.BROADD2.67.dna.toplevel.fa'
-export BCFTOOLS_PLUGINS="/home/tuk32868/bin"  ## make sure plugins are set 
+#ref='/content/reference/canFam2.fa'
+ref='/content/visualization_pipeline/command_line/igv.js-flask/igvjs/static/data/public/canFam2.fa'
+#export BCFTOOLS_PLUGINS="/home/tuk32868/bin"  ## make sure plugins are set 
 
 cd $direct  ## change to main directory with files 
 gunzip *.gz  ## unzip all the files 
@@ -39,7 +40,9 @@ done
 
 for f in */                             ## for each subdirectory 
 do
-	mono /home/tuk32868/bin/autoconvert/AutoConvert.exe $direct/$f $direct/$f /mnt/d/visualization_pipeline/illumina_files/$bpm /mnt/d/visualization_pipeline/illumina_files/$egt  ## run autoconvert software
+    
+    python /content/visualization_pipeline/command_line/change_idat_names2.py $(pwd | grep -P 'data\/\w+' -o | cut -d'/' -f 2)
+	/content/iaap-cli/./iaap-cli gencall /content/illumina_files/$bpm /content/illumina_files/$egt ./ -f ./ -g  ## run iaap-cli software
 done
 
 
@@ -47,5 +50,14 @@ done
 find . -type f | while read name; do [[ $name == *.gtc ]] && echo $name; done > filelist.txt  
 
 ### call gtc2vcf using file just used 
-bcftools +gtc2vcf --no-version -Ob -b /mnt/d/visualization_pipeline/illumina_files/$bpm -c /mnt/d/visualization_pipeline/illumina_files/$csv -e /mnt/d/visualization_pipeline/illumina_files/$egt -g $direct/filelist.txt -f $ref -x $direct/$output.sex -v --do-not-check-bpm | bcftools sort -Ou -T ./bcftools-sort.XXXX | bcftools norm --no-version -Ob -o $direct/$output.bcf -c x -f $ref && bcftools index -f $direct/$output.bcf
+bcftools +gtc2vcf --no-version -Ob -b /content/illumina_files/$bpm -c /content/illumina_files/$csv -e /content/illumina_files/$egt -g $direct/filelist.txt -f $ref -x $direct/$output.sex -v --do-not-check-bpm | bcftools sort -Ou -T ./bcftools-sort.XXXX | bcftools norm --no-version -Ob -o $direct/$output.bcf -c x -f $ref && bcftools index -f $direct/$output.bcf
+### convert bcf to vcf
+bcftools view *.bcf -Ov --output $direct/$output.vcf && printf "Converted bcf to vcf\n"
+### bgzip the vcf
+bgzip -c *.vcf > $direct/$output.vcf.gz && printf "Bgzipped the vcf\n"
+### index bgzipped vcf with tabix
+tabix -p vcf *vcf.gz && printf "Indexed the bgzipped vcf with tabix\n"
 
+printf "Done ( ͡° ͜ʖ ͡°)"
+#last line doesn't get printed with the subprocess version to start the pipeline, so this line makes sure the real last line gets printed
+printf ""

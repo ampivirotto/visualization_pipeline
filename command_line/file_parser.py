@@ -68,6 +68,7 @@ def checkVCF(directory, vcffile):
                     newvcffile = vcffile
     return newvcffile
 
+
 def transposeRel(directory, relFile):
     ## set up dictionary
     cols = []
@@ -246,5 +247,7 @@ def retrieveMetaData(samples, directory, outfn):
 
 
     df = pd.DataFrame.from_dict(metadata, orient='index', columns=cols)
-    df.to_csv(directory + outfn + ".csv")
+    ## might need directory - check in debugging 
+    #df.to_csv(directory + outfn + ".csv")
+    df.to_csv(outfn + ".csv")
     return df
