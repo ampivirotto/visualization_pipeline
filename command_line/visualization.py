@@ -1,5 +1,5 @@
 import allel; print('scikit-allel', allel.__version__)
-import random
+import random, subprocess
 random.seed(14)
 import time
 import numpy as np
@@ -10,12 +10,13 @@ import seaborn as sns
 sns.set_style('white')
 sns.set_style('ticks')
 import bcolz
-import ipyrad.analysis as ipa
 import pandas as pd
-import os
 from collections import defaultdict
 import file_parser as fp
 import sys
+import pickle
+import subprocess
+import os
 
 
 def randColor(num, pops):
@@ -203,7 +204,7 @@ def LD(directory, outfn, newVCF=False, samples = None, bs = 20000):
     plt.show()
 
 
-def pca(directory, outfn, column, newVCF=False, samples = None, bs = 20000):
+def old_pca(directory, outfn, column, newVCF=False, samples = None, bs = 20000):
     """
     main function to run pca visualization
     """
@@ -222,52 +223,70 @@ def pca(directory, outfn, column, newVCF=False, samples = None, bs = 20000):
 
     fig_pca(directory, outfn, coords1, model1, 'Conventional PCA.', sample_population = df[column])
 
-
+def pca(directory, vcffile, outfn):
+    gds = vcffile.strip('vcf').strip('.') + '.gds'
+    subprocess.run(['Rscript', '--vanilla', 'pca.R', directory, vcffile, outfn + '.html', gds])
 
 def fst(g, directory, outfn, samplelist):
     ## get subpops - dataframe
     df = fp.retrieveMetaData(None, directory, outfn)
 
-    #test
-    #print(df)
-
     ## get list of subpops
     subdict = {}
-    for pop in df['ethnic group'].unique():
-        subpop = df[df['ethnic group'] == pop]
+    for pop in df[df.columns[1]].unique():
+        subpop = df[df[df.columns[1]] == pop]
         subdict[pop] = list(subpop['id'])
 
     finalpopdict = defaultdict(list)
     for num in range(len(samplelist)):
         idname = samplelist[num]
         for key in subdict.keys():
-            if idname in subdict[key]:
-                finalpopdict[key].append(num)
+            for item in subdict[key]:
+                if idname in item:
+                    finalpopdict[key].append(num)
 
     subpoplist = []
     for key in finalpopdict.keys():
         subpoplist.append(finalpopdict[key])
 
-    ## calculate variance components
-    a, b, c = allel.weir_cockerham_fst(g, subpoplist)
+    if len(subpoplist) > 1:
+        ## calculate variance components
+        a, b, c = allel.weir_cockerham_fst(g, subpoplist)
 
-    ## average fst per variant
-    fst = (np.sum(a, axis=1) / (np.sum(a, axis=1) + np.sum(b, axis=1) + np.sum(c, axis=1)))
+        ## average fst per variant
+        fst = (np.sum(a, axis=1) / (np.sum(a, axis=1) + np.sum(b, axis=1) + np.sum(c, axis=1))) 
+    else:
+        fst = []
 
     return fst
 
-def circos(directory, outfn, vcffile):
-    ## make config file
+def circos(directory, outfn, vcffile, chipType):
+    ## identify karyotype and k id from karyotype from pickle file 
+    with open('file_location.pickle', "rb") as f:
+        chipDict = pickle.load(f)
+
+    values = chipDict[chipType]
+    ktype = values[3]
+    kid = values[4]
+
+
+    ## check vcf format and create an edited vcffile if not in correct format 
+    newvcfname = fp.checkVCF(directory, vcffile)
 
     ## turn vcf file into .dat file
     ## chr - start - finish - snp density
     ## bash script
+    command = "awk '/^#/ {next} {printf(\"%s\\t%d\\n\",$1,$2-$2%1000000);}' " + directory + newvcfname + " | sort | uniq -c | awk '{printf(\"" + kid +"%s\\t%s\\t%d\\t%s\\n\",$2,$3,$3+1000000,$1);}' > " + directory + outfn + ".dat"
+    with open(directory + 'vcf2dat.sh', 'w') as o:
+        o.write(command)
+    subprocess.run(['bash', directory + 'vcf2dat.sh'])
 
-    ## create data file for heterozygosity
+
+    ## read in snp density file created above 
     snpdensity = pd.read_csv(directory + outfn + ".dat", sep='\t', header=None)
 
     ## using user input name read in vcf (either old vcf or new vcf)
-    callset = allel.read_vcf(directory + vcffile + ".vcf")
+    callset = allel.read_vcf(directory + newvcfname)
     pos = callset['variants/POS']
     chrm = callset['variants/CHROM']
 
@@ -276,17 +295,28 @@ def circos(directory, outfn, vcffile):
     ##test fst
     samplelist = callset['samples']
     fstlist = fst(gt, directory, outfn, samplelist)
-    fp.makeDATFile(pos, gt, chrm, fstlist, snpdensity, directory, outfn, 'fst')
+    if len(fstlist) == 0:
+        ## if there's only one population, then it will output an empty fst file.  
+        f = open(directory + outfn + "_fst.dat", 'w')
+        f.close()
+    else:
+        fp.makeDATFile(pos, gt, chrm, fstlist, snpdensity, directory, outfn, 'fst')
 
     ## count the heterozygoes for each pos
     hetcount = gt.count_het(axis=1)
     fp.makeDATFile(pos, gt, chrm, hetcount, snpdensity, directory, outfn, 'het')
 
+    ## make config file
+    fp.makeCircos(directory, vcffile[:-4], ktype)
+
+    ## run circos 
+    subprocess.run(["../software/circos/circos-0.69-9/bin/circos", "-outputdir", directory, "-outputfile", outfn, "-conf", directory + "circos.conf"])
+
 
 
 def sfs(directory, vcffile):
     ### create a Site Frequency Spectrum Figure
-    callset = allel.read_vcf(directory + vcffile + ".vcf")
+    callset = allel.read_vcf(vcffile)
 
     gt = allel.GenotypeArray(callset['calldata/GT'])
     ac = gt.count_alleles()[:]
@@ -296,11 +326,18 @@ def sfs(directory, vcffile):
     sfslist = allel.sfs(derived)
 
     xlabel = [x for x in range(1, len(sfslist)+1)]
+    plt.style.use('seaborn-darkgrid')
+    plt.plot(xlabel, list(sfslist), marker = 'o')
+    '''
+    for i in range(len(xlabel)):
+        plt.text(xlabel[i], list(sfslist)[i],  str(list(sfslist)[i]), ha = 'center')
+    '''
 
-    plt.plot(xlabel, list(sfslist))
     plt.xlabel("K value")
     plt.ylabel("Number of variants")
-    plt.savefig(directory + "/" + vcffile +  "_sfs.jpg")
+    
+
+    plt.savefig(vcffile +  "_sfs.jpg")
 
 
 def singleChr():
@@ -317,15 +354,94 @@ def singleChr():
 def heatmap(directory, outfn, vcffile, logfile):
 
     ## calculate relatedness via vcftools
-    subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn], stdout = logfile)
+    #subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn], stdout = logfile)
+    subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn])
+    time.sleep(4)
     relFile = directory + "/" + outfn + ".relatedness2"
-
+    time.sleep(4)
     ## call file parser to turn into csv
     fp.transposeRel(directory, relFile)
     matrixfile = directory + "/" + outfn + ".csv"
 
     ## call R script
-    subprocess.Popen(['Rscript', '--vanilla', 'pipeline/heatmap.R', directory, matrixfile, directory + "/" + outfn + "_heatmap.jpg"])
+    subprocess.Popen(['Rscript', '--vanilla', '/content/visualization_pipeline/command_line/heatmap.R', directory, matrixfile, directory + "/" + outfn + "_heatmap.jpg"])
+
+def interactive_heatmap(directory, outfn, vcffile):
+    ## calculate relatedness via vcftools
+    subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn])
+    time.sleep(4)
+    relFile = directory + "/" + outfn + ".relatedness2"
+    time.sleep(4)
+    ## call file parser to turn into csv
+    fp.transposeRel(directory, relFile)
+    matrixfile = directory + "/" + outfn + ".csv"
+
+    subprocess.Popen(['Rscript', '--vanilla', '/content/visualization_pipeline/command_line/interactive_heatmap.R', directory, matrixfile])
+
+def tree(directory, vcffile, outfn):
+    f = open(directory +'/tree.nwk', 'w')
+    subprocess.run(['vk','phylo','tree','upgma', vcffile], stdout = f)
+    subprocess.run(['Rscript','--vanilla','tree_maker.R', directory+'/tree.nwk', directory, outfn+'_tree.png'])
+
+def base_changes(directory, vcffile, outfn):
+    process = subprocess.run(['bcftools', 'stats', vcffile], stdout = subprocess.PIPE, stderr=subprocess.STDOUT)
+    output = process.stdout
+    output = output.decode("utf-8").split('\n')
+    subs = output[47:59]
+    subs = [i.split('\t') for i in subs]
+    subs = [i[2:] for i in subs]
+    A, C, G, T = subs[:3], subs[3:6], subs[6:9], subs[9:]
+    A = [int(i[1]) for i in A]
+    A.insert(0, 0)
+    C = [int(i[1]) for i in C]
+    C.insert(1,0) 
+    G = [int(i[1]) for i in G] 
+    G.insert(2,0)
+    T = [int(i[1]) for i in T]
+    T.insert(3,0)
+
+    bars1, bars2, bars3, bars4 = [A[0],C[0],G[0],T[0]], [A[1],C[1],G[1],T[1]], [A[2],C[2],G[2],T[2]], [A[3],C[3],G[3],T[3]]
+    barWidth = 0.15
+    r1 = np.arange(len(bars1))
+    r2 = [x + barWidth for x in r1]
+    r3 = [x + barWidth for x in r2]
+    r4 = [x + barWidth for x in r3]
+
+    # Make the plot
+    plt.bar(r1, bars1, color='green', width=barWidth, edgecolor='white', label='A')
+    plt.bar(r2, bars2, color='orange', width=barWidth, edgecolor='white', label='C')
+    plt.bar(r3, bars3, color='blue', width=barWidth, edgecolor='white', label='G')
+    plt.bar(r4, bars4, color='red', width=barWidth, edgecolor='white', label='T')
+    
+    # Add xticks on the middle of the group bars
+    plt.xlabel('Reference Base', fontweight='bold')
+    plt.ylabel('Number of Changes', fontweight='bold')
+    plt.title('Base Substitutions', fontweight='bold')
+    plt.xticks([r + barWidth for r in range(len(bars1))], ['A', 'C', 'G', 'T'])
+    
+    # Create legend & Show graphic
+    plt.legend()
+    plt.style.use('seaborn-dark')
+    plt.savefig(directory + '/' + outfn + '_baseChanges.png')
+
+def tstv(directory, vcffile, outfn):
+    process = subprocess.run(['bcftools', 'stats', vcffile], stdout = subprocess.PIPE, stderr=subprocess.STDOUT)
+    output = process.stdout
+    output = output.decode("utf-8").split('\n')
+    line = output[33]
+    ts, tv, tstv = line.split('\t')[2], line.split('\t')[3], line.split('\t')[4]
+
+    # Pie chart, where the slices will be ordered and plotted counter-clockwise:
+    labels = 'Ts', 'Tv'
+    sizes = [ts, tv]
+    explode = (0.1, 0)
+
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%',
+            shadow=True, startangle=90)
+    ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    ax1.set_title('Ts/Tv = ' + str(tstv))
+    plt.savefig(directory + '/' + outfn + '_tstv.png')
 
 def main(viz_options, directory, outfn, vcffile, colname):
     if 'circos' in viz_options:
@@ -334,10 +450,19 @@ def main(viz_options, directory, outfn, vcffile, colname):
         sfs(directory, vcffile)
     if 'pca' in viz_options:
         ## needs to be changed to allow user to select column
-        pca(directory, outfn, colname)
+        #pca(directory, outfn, colname)
+        pca(directory, vcffile, outfn)
+    if 'interactive_heatmap' in viz_options:
+        interactive_heatmap(directory, outfn, vcffile)
     if 'heatmap' in viz_options:
         ## call R script
-        heatmap(directory, outfn, vcffile, logfile)
+        heatmap(directory, outfn, vcffile, '')
+    if 'tree' in viz_options:
+        tree(directory, vcffile, outfn)
+    if 'base_changes' in viz_options:
+        base_changes(directory,vcffile,outfn)
+    if 'Ts/Tv' in viz_options:
+        tstv(directory,vcffile,outfn)
 
 if __name__ == '__main__':
     directory = sys.argv[1]

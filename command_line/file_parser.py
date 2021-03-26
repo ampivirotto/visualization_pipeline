@@ -2,16 +2,86 @@ from collections import defaultdict
 import pandas as pd
 import numpy as np
 import math
+import os
+import subprocess
+
+def findmax(directory):
+    """
+    get max values from snp density, heterozygote, and fst file 
+    """
+    for filename in os.listdir(directory):
+        if filename.endswith("_het.dat"):
+            df = pd.read_csv(directory + filename, sep = "\t", header = None)
+            maxhet = df[3].max() * 1.1
+        elif filename.endswith("_fst.dat"):
+            try:
+                df = pd.read_csv(directory + filename, sep = "\t", header = None)
+                maxfst = df[3].max() * 1.1
+            except:
+                maxfst = 0
+        elif filename.endswith(".dat"):
+            df = pd.read_csv(directory + filename, sep = "\t", header = None)
+            maxden = df[3].max() * 1.1 
+    return maxden, maxhet, maxfst
+
+
+def makeCircos(directory, gseid, ktype):
+    """
+    make .conf file 
+    """
+    ## get max values from .dat files 
+    maxden, maxhet, maxfst = findmax(directory)
+
+    ## write to .conf file 
+    with open(directory + '/circos.conf', 'w') as o:
+        ## karyotype file 
+        o.write('karyotype = data/karyotype/{}\n\n'.format(ktype))
+        ## start set up of plot
+        o.write("chromosomes_units = 1000000\n\n<plots>\n\n")
+        ## snp density plot 
+        o.write("<plot>\ntype = histogram\nmin=0\nmax={}\nfile= {}.dat\nr0  = 0.76r\nr1  = 0.95r\ncolor = black_a4\nfill_color = blue\nthickness = 2\n</plot>\n".format(maxden, gseid))
+        ## heterozygosity plot
+        o.write("<plot>\ntype = histogram\nmin=0\nmax={}\nfile= {}_het.dat\nr0  = 0.56r\nr1  = 0.75r\ncolor= black_a4\nfill_color = green\nthickness = 1\n</plot>\n".format(maxhet, gseid))
+        ## fst plot
+        o.write("<plot>\ntype = histogram\nmin=0\nmax={}\nfile = {}_fst.dat\nr0  = 0.35r\nr1  = 0.55r\ncolor = black_a4\nfill_color = red\nthickness = 1\n</plot>\n".format(maxfst, gseid))
+        ## finish set up 
+        o.write("</plots>\n<<include etc/ideogram.conf>>\n<<include etc/ticks.conf>>\n<image>\n<<include etc/image.conf>>\n</image>\n<<include etc/colors_fonts_patterns.conf>>\n<<include etc/housekeeping.conf>>")
+
+def checkVCF(directory, vcffile):
+    """
+    check to see if VCF has chr# or # in chr column.  if has chr# then remove the string 'chr' and output to edited vcf file. 
+    """
+    with open(directory + vcffile) as f:
+        for line in f:
+            if not line.startswith("#"):
+                temp = line.split("\t")
+                chrn = temp[0]
+
+                if 'chr' in chrn:
+                    newvcffile = vcffile[:-4] + "_edit.vcf"
+                    command = "awk \'{gsub(/^chr/,\"\"); print}\' " + directory + vcffile + " > " + directory + newvcffile
+                    with open(directory + 'fixVCF.sh', 'w') as o:
+                        o.write(command)
+                    subprocess.run(['bash', directory + 'fixVCF.sh'])
+                    break
+                else:
+                    newvcffile = vcffile
+    return newvcffile
 
 def transposeRel(directory, relFile):
     ## set up dictionary
     cols = []
     maindict = defaultdict(list)
-
+    with open(relFile) as f:
+        total_samples = int(math.sqrt(len(f.read().split('\n'))-1))
+        
     ## read through output file to parse information
     with open(relFile) as f:
+        
         for line in f:
+            #print(line)
             if line.startswith("GSM"):
+                #print(line)
                 splitline = line.split("\t")
                 try:
                     indexnum = cols.index(splitline[1])
@@ -23,28 +93,22 @@ def transposeRel(directory, relFile):
                     maindict[splitline[0]].insert(indexnum, float(splitline[6].strip("\n")))
                     maindict[splitline[0]].pop(indexnum+1)
                 else:
-                    maindict[splitline[0]] = [math.nan for x in range(1, 241)]
+                    maindict[splitline[0]] = [math.nan for x in range(1, total_samples+1)]
                     maindict[splitline[0]].insert(indexnum, float(splitline[6].strip("\n")))
                     maindict[splitline[0]].pop(indexnum+1)
 
     ## turn into df and csv
     df = pd.DataFrame.from_dict(maindict, orient='index', columns=cols)
-    filename = relFile.strip(".relatedness2")
-    df.to_csv(directory + "/" + filename + ".csv")
+    ## remove the .relatedness2 from filename 
+    filename = relFile[:-13]
+    df.to_csv(directory + filename + ".csv")
 
 
 
 def makeDATFile(pos, gt, chrm, typecount, snpdensity, directory, outfn, typel):
 
     ## creat empty dictionary to store the varaints per chromosome
-    typedict = {}
-
-    ## add all chromosomes to the dictionary
-    for chrnum in range(1, 23):
-        typedict[chrnum] = []
-    typedict['X'] = []
-    typedict['Y'] = []
-    typedict['MT'] = []
+    typedict = defaultdict(list)
 
     ## add variants with with item from count to temp dictionary
     for x in range(len(pos)):
@@ -60,6 +124,7 @@ def makeDATFile(pos, gt, chrm, typecount, snpdensity, directory, outfn, typel):
     start = snpdensity[1]
     end = snpdensity[2]
     typelist = []
+
 
     for x in range(len(start)):
         total = 0
@@ -181,5 +246,5 @@ def retrieveMetaData(samples, directory, outfn):
 
 
     df = pd.DataFrame.from_dict(metadata, orient='index', columns=cols)
-    df.to_csv(outfn + ".csv")
+    df.to_csv(directory + outfn + ".csv")
     return df
