@@ -246,7 +246,11 @@ def fst(g, directory, outfn, samplelist):
 
     return fst
 
-def circos(directory, outfn, vcffile, chipType):
+def circos(directory, outfn, vcffile):
+
+    ## get just vcffile name 
+    vcffile = os.path.basename(vcffile)
+
     ## identify karyotype and k id from karyotype from pickle file 
     with open('file_location.pickle', "rb") as f:
         chipDict = pickle.load(f)
