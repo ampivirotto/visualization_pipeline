@@ -1,6 +1,6 @@
 data/*
 ignored/
-illumina_files/*
+illumina_files/files/*
 flask_docker_demo/
 src/webfacing.py
 src/Dockerfile
@@ -12,3 +12,4 @@ genes_canFam/*
 rejects_canFam2.jpg
 rejects_canFam3.jpg
 software/*
+

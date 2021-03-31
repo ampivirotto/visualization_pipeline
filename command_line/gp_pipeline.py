@@ -10,13 +10,10 @@ def identifyChip(chipType):
     #this part didn't work; illumina_dict.pickle not found
     with open('../illumina_files/illumina_dict.pickle', "rb") as f:
         chipDict = pickle.load(f)
-
     values = chipDict[chipType]
-
     print('BPM: ' + values[0] + '\n')
     print('EGT: ' + values[1] + '\n')
     print('CSV: ' + values[2] + '\n')
-
     return values[0], values[1], values[2]
     '''
     return 'CanineHD_B.bpm', 'CanineHD_A.egt', 'CanineHD_B.csv'
@@ -24,7 +21,6 @@ def checkDir(directory):
     """
     identify whether the dictionary exists or not - if it doens't make one
     create the LOG file
-
     """
     ## test if directory is there
     if not os.path.exists(directory):
@@ -157,5 +153,3 @@ output = sys.argv[3]
 allSamples = sys.argv[4]
 
 main(geonum, chipType, allSamples, output)
-
-

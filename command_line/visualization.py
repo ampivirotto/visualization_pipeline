@@ -11,10 +11,12 @@ sns.set_style('white')
 sns.set_style('ticks')
 import bcolz
 import pandas as pd
-import os
 from collections import defaultdict
 import file_parser as fp
 import sys
+import pickle
+import subprocess
+import os
 
 
 def randColor(num, pops):
@@ -188,7 +190,7 @@ def LD(directory, outfn, newVCF=False, samples = None, bs = 20000):
     plt.show()
 
 
-'''def pca(directory, outfn, column, newVCF=False, samples = None, bs = 20000):
+def old_pca(directory, outfn, column, newVCF=False, samples = None, bs = 20000):
     """
     main function to run pca visualization
     """
@@ -206,7 +208,7 @@ def LD(directory, outfn, newVCF=False, samples = None, bs = 20000):
     coords1, model1 = allel.pca(gn, n_components=10, scaler='patterson')
 
     fig_pca(directory, outfn, coords1, model1, 'Conventional PCA.', sample_population = df[column])
-'''
+
 def pca(directory, vcffile, outfn):
     gds = vcffile.strip('vcf').strip('.') + '.gds'
     subprocess.run(['Rscript', '--vanilla', 'pca.R', directory, vcffile, outfn + '.html', gds])
@@ -215,46 +217,62 @@ def fst(g, directory, outfn, samplelist):
     ## get subpops - dataframe
     df = fp.retrieveMetaData(None, directory, outfn)
 
-    #test
-    #print(df)
-
     ## get list of subpops
     subdict = {}
-    for pop in df['ethnic group'].unique():
-        subpop = df[df['ethnic group'] == pop]
+    for pop in df[df.columns[1]].unique():
+        subpop = df[df[df.columns[1]] == pop]
         subdict[pop] = list(subpop['id'])
 
     finalpopdict = defaultdict(list)
     for num in range(len(samplelist)):
         idname = samplelist[num]
         for key in subdict.keys():
-            if idname in subdict[key]:
-                finalpopdict[key].append(num)
+            for item in subdict[key]:
+                if idname in item:
+                    finalpopdict[key].append(num)
 
     subpoplist = []
     for key in finalpopdict.keys():
         subpoplist.append(finalpopdict[key])
 
-    ## calculate variance components
-    a, b, c = allel.weir_cockerham_fst(g, subpoplist)
+    if len(subpoplist) > 1:
+        ## calculate variance components
+        a, b, c = allel.weir_cockerham_fst(g, subpoplist)
 
-    ## average fst per variant
-    fst = (np.sum(a, axis=1) / (np.sum(a, axis=1) + np.sum(b, axis=1) + np.sum(c, axis=1)))
+        ## average fst per variant
+        fst = (np.sum(a, axis=1) / (np.sum(a, axis=1) + np.sum(b, axis=1) + np.sum(c, axis=1))) 
+    else:
+        fst = []
 
     return fst
 
-def circos(directory, outfn, vcffile):
-    ## make config file
+def circos(directory, outfn, vcffile, chipType):
+    ## identify karyotype and k id from karyotype from pickle file 
+    with open('file_location.pickle', "rb") as f:
+        chipDict = pickle.load(f)
+
+    values = chipDict[chipType]
+    ktype = values[3]
+    kid = values[4]
+
+
+    ## check vcf format and create an edited vcffile if not in correct format 
+    newvcfname = fp.checkVCF(directory, vcffile)
 
     ## turn vcf file into .dat file
     ## chr - start - finish - snp density
     ## bash script
+    command = "awk '/^#/ {next} {printf(\"%s\\t%d\\n\",$1,$2-$2%1000000);}' " + directory + newvcfname + " | sort | uniq -c | awk '{printf(\"" + kid +"%s\\t%s\\t%d\\t%s\\n\",$2,$3,$3+1000000,$1);}' > " + directory + outfn + ".dat"
+    with open(directory + 'vcf2dat.sh', 'w') as o:
+        o.write(command)
+    subprocess.run(['bash', directory + 'vcf2dat.sh'])
 
-    ## create data file for heterozygosity
+
+    ## read in snp density file created above 
     snpdensity = pd.read_csv(directory + outfn + ".dat", sep='\t', header=None)
 
     ## using user input name read in vcf (either old vcf or new vcf)
-    callset = allel.read_vcf(vcffile)
+    callset = allel.read_vcf(directory + newvcfname)
     pos = callset['variants/POS']
     chrm = callset['variants/CHROM']
 
@@ -263,11 +281,22 @@ def circos(directory, outfn, vcffile):
     ##test fst
     samplelist = callset['samples']
     fstlist = fst(gt, directory, outfn, samplelist)
-    fp.makeDATFile(pos, gt, chrm, fstlist, snpdensity, directory, outfn, 'fst')
+    if len(fstlist) == 0:
+        ## if there's only one population, then it will output an empty fst file.  
+        f = open(directory + outfn + "_fst.dat", 'w')
+        f.close()
+    else:
+        fp.makeDATFile(pos, gt, chrm, fstlist, snpdensity, directory, outfn, 'fst')
 
     ## count the heterozygoes for each pos
     hetcount = gt.count_het(axis=1)
     fp.makeDATFile(pos, gt, chrm, hetcount, snpdensity, directory, outfn, 'het')
+
+    ## make config file
+    fp.makeCircos(directory, vcffile[:-4], ktype)
+
+    ## run circos 
+    subprocess.run(["../software/circos/circos-0.69-9/bin/circos", "-outputdir", directory, "-outputfile", outfn, "-conf", directory + "circos.conf"])
 
 
 
@@ -420,7 +449,8 @@ def main(viz_options, directory, outfn, vcffile, colname):
         base_changes(directory,vcffile,outfn)
     if 'Ts/Tv' in viz_options:
         tstv(directory,vcffile,outfn)
-    
+
+        
 if __name__ == '__main__':
     directory = sys.argv[1]
     vcffile = sys.argv[2]
