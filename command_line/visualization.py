@@ -246,11 +246,11 @@ def fst(g, directory, outfn, samplelist):
 
     return fst
 
-def circos(directory, outfn, vcffile):
-
+def circos(directory, outfn, vcffile, chipType):
+     
     ## get just vcffile name 
     vcffile = os.path.basename(vcffile)
-
+    directory = directory+'/'
     ## identify karyotype and k id from karyotype from pickle file 
     with open('file_location.pickle', "rb") as f:
         chipDict = pickle.load(f)
@@ -297,10 +297,10 @@ def circos(directory, outfn, vcffile):
     fp.makeDATFile(pos, gt, chrm, hetcount, snpdensity, directory, outfn, 'het')
 
     ## make config file
-    fp.makeCircos(directory, vcffile[:-4], ktype)
+    fp.makeCircos(directory, outfn, ktype)
 
     ## run circos 
-    subprocess.run(["../software/circos/circos-0.69-9/bin/circos", "-outputdir", directory, "-outputfile", outfn, "-conf", directory + "circos.conf"])
+    subprocess.run(["circos", "-outputdir", directory, "-outputfile", outfn, "-conf", directory + "circos.conf"])
 
 
 
@@ -435,7 +435,7 @@ def tstv(directory, vcffile, outfn):
 
 def main(viz_options, directory, outfn, vcffile, colname):
     if 'circos' in viz_options:
-        circos(directory, outfn, vcffile)
+        circos(directory, outfn, vcffile, 'dogHD')
     if 'sfs' in viz_options:
         sfs(directory, vcffile)
     if 'pca' in viz_options:

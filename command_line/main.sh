@@ -37,13 +37,10 @@ do                        			 	## loop through all txt files
         fi
     fi
 done
+python /content/visualization_pipeline/command_line/change_idat_names2.py $(pwd | grep -P 'data\/\w+' -o | cut -d'/' -f 2)
 
-for f in */                             ## for each subdirectory 
-do
-    
-    python /content/visualization_pipeline/command_line/change_idat_names2.py $(pwd | grep -P 'data\/\w+' -o | cut -d'/' -f 2)
-	/content/iaap-cli/./iaap-cli gencall /content/illumina_files/$bpm /content/illumina_files/$egt ./ -f ./ -g  ## run iaap-cli software
-done
+/content/iaap-cli/./iaap-cli gencall /content/illumina_files/$bpm /content/illumina_files/$egt ./ -f ./ -g -t 2 ## run iaap-cli software
+
 
 
 ### make a list of all files in the directories 
