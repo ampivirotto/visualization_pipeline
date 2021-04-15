@@ -44,8 +44,8 @@ fig <- fig %>% layout(
     title = "PCA",
     scene = list(
       xaxis = list(title = paste("EV1:", round(pc.percent[1], 2), "%")),
-      yaxis = list(title = paste("EV2:", round(pc.percent[2], 2), "%"))),
-      zaxis = list(title = paste("EV3:", round(pc.percent[3], 2), "%")))
+      yaxis = list(title = paste("EV2:", round(pc.percent[2], 2), "%")),
+      zaxis = list(title = paste("EV3:", round(pc.percent[3], 2), "%"))))
     
 fig #show plot
 #htmlwidgets::saveWidget(as_widget(fig), args[3])
