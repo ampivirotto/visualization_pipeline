@@ -30,15 +30,26 @@ pca <- snpgdsPCA(gds, num.thread=2,eigen.cnt = 0)
 pc.percent <- pca$varprop*100
 #head(round(pc.percent, 2))
 #pc.percent
-tab <- data.frame(sample.id = pca$sample.id,
+populations <- read.csv(file = "/content/data/GSE83151/GSE83151_circos.csv")
+#head(populations)
+
+
+
+
+tab <- data.frame(sample.id = substr(pca$sample.id, 0, 10),
                   EV1 = pca$eigenvect[,1],    # the first eigenvector
                   EV2 = pca$eigenvect[,2],    # the second eigenvector
                   EV3 = pca$eigenvect[,3],    #the thrid eigenvector (if needed for 3D plot)
                   stringsAsFactors = FALSE)
 #head(tab)
+
+fusion <- merge.data.frame(x=tab, y=populations, by.x="sample.id", by.y="X")
+
+#head(fusion)
+
 #plot(tab$EV2, tab$EV1, xlab="eigenvector 2", ylab="eigenvector 1")
 #scatter3D(tab$EV2,tab$EV1,tab$EV3) #3D scatterplot
-fig <- plot_ly(tab, x=~EV2, y=~EV1, z=~EV3, name = ~sample.id) #create interactive 3D plot
+fig <- plot_ly(fusion, x=~EV2, y=~EV1, z=~EV3, color = ~breed) #create interactive 3D plot
 
 fig <- fig %>% layout(
     title = "PCA",
