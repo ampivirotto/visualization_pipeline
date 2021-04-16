@@ -47,6 +47,43 @@ def makeCircos(directory, gseid, ktype):
         ## finish set up 
         o.write("</plots>\n<<include etc/ideogram.conf>>\n<<include etc/ticks.conf>>\n<image>\n<<include etc/image.conf>>\n</image>\n<<include etc/colors_fonts_patterns.conf>>\n<<include etc/housekeeping.conf>>")
 
+def compareKaryotype(kfname, sddf, sdfpath):
+    """
+    takes the karyotype file and SNP density DAT file and compares the naming scheme to ensure they're the same
+    for circos plotting  
+    """
+    ## read in karyotype file 
+    df = pd.read_csv("../software/circos/circos-0.69-9/data/karyotype/" + kfname, sep = " ", header = None)  ## have to update where the file is located
+    ## get the chromosome ids used in karyotype file 
+    kt_ids = list(df[2])
+
+    ids = sddf[0].unique()
+    
+    found = []
+    differs = []
+
+    for idnum in ids:
+        if idnum in kt_ids:
+            found.append(idnum)
+        else:
+            differs.append(idnum)
+    if len(differs) > 1:
+        raise Exception('Check Karyotype and VCF chromosome naming schemes')
+    elif len(differs) == 1:
+        for item in kt_ids:
+            if not item in found:
+                temp = sddf[sddf[0] == differs[0]]
+                eelse = sddf.loc[sddf[0] != differs[0]]
+                temp.loc[:,0] = item
+
+                final = pd.concat([temp, eelse])
+                final.to_csv(sdfpath, index = False, header = False, sep = "\t")
+                #print(len(sddf), len(eelse) + len(temp))
+                return final
+    else:
+        return sddf
+
+
 def checkVCF(directory, vcffile):
     """
     check to see if VCF has chr# or # in chr column.  if has chr# then remove the string 'chr' and output to edited vcf file. 
@@ -102,11 +139,11 @@ def transposeRel(directory, relFile):
     df = pd.DataFrame.from_dict(maindict, orient='index', columns=cols)
     ## remove the .relatedness2 from filename 
     filename = relFile[:-13]
-    df.to_csv(directory + filename + ".csv")
+    df.to_csv(filename + ".csv")
 
 
 
-def makeDATFile(pos, gt, chrm, typecount, snpdensity, directory, outfn, typel):
+def makeDATFile(pos, chrm, typecount, snpdensity, directory, outfn, typel):
 
     ## creat empty dictionary to store the varaints per chromosome
     typedict = defaultdict(list)
@@ -124,9 +161,9 @@ def makeDATFile(pos, gt, chrm, typecount, snpdensity, directory, outfn, typel):
     chrnm = snpdensity[0]
     start = snpdensity[1]
     end = snpdensity[2]
-    typelist = []
+    newdict = {}
 
-
+    row = 0
     for x in range(len(start)):
         total = 0
         counter = 0
@@ -135,28 +172,23 @@ def makeDATFile(pos, gt, chrm, typecount, snpdensity, directory, outfn, typel):
         except:
             snps = typedict[chrnm[x][2:]]
         for var in snps:
-            try:
-                pos = list(var.keys())[0]
-                if pos < end[x]:
-                    if pos > start[x]:
-                        total+= list(var.values())[0]
-                        counter+=1
-                else:
-                    break
-            except:
-                pos = list(var.keys())[0]
-        if total ==0 and counter == 0:
-            typelist.append(0)
+            pos = list(var.keys())[0]
+            if pos < end[x]:
+                if pos > start[x]:
+                    total += list(var.values())[0]
+                    counter +=1
+            else:
+                break 
+        if total == 0 and counter == 0:
+            newdict[row] = [chrnm[x], start[x], end[x], 0]
         else:
-            try:
-                typelist.append(total/counter)
-            except:
-                print("ERROR")
+            newdict[row] = [chrnm[x], start[x], end[x], total/counter]
+        row += 1
 
     ## take the snpdensity file and drop snp density and add heterozygosity
-    snpdensity.drop([3], axis=1)
-    snpdensity[3] = typelist
-    snpdensity.to_csv(directory + outfn + "_" + typel + ".dat", index=False, header=False, sep="\t")
+    #pdb.set_trace()
+    dat = pd.DataFrame.from_dict(newdict, orient = 'index')
+    dat.to_csv(directory + outfn + "_" + typel + ".dat", index=False, header=False, sep="\t")
 
 def retrieveMetaData(samples, directory, outfn):
     ## make empty dictionary
@@ -249,5 +281,5 @@ def retrieveMetaData(samples, directory, outfn):
     df = pd.DataFrame.from_dict(metadata, orient='index', columns=cols)
     ## might need directory - check in debugging 
     #df.to_csv(directory + outfn + ".csv")
-    df.to_csv(outfn + ".csv")
+    df.to_csv(directory + outfn + ".csv")
     return df
