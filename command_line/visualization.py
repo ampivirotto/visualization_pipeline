@@ -6,9 +6,9 @@ import numpy as np
 np.random.seed(14)
 import h5py
 import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set_style('white')
-sns.set_style('ticks')
+#import seaborn as sns  ## update causing errors?
+#sns.set_style('white')
+#sns.set_style('ticks')
 import bcolz
 import pandas as pd
 from collections import defaultdict
@@ -240,7 +240,7 @@ def fst(g, directory, outfn, samplelist):
         a, b, c = allel.weir_cockerham_fst(g, subpoplist)
 
         ## average fst per variant
-        fst = (np.sum(a, axis=1) / (np.sum(a, axis=1) + np.sum(b, axis=1) + np.sum(c, axis=1))) 
+        fst = np.sum(a, axis=1) / (np.sum(a, axis=1) + np.sum(b, axis=1) + np.sum(c, axis=1))
     else:
         fst = []
 
@@ -250,7 +250,15 @@ def circos(directory, outfn, vcffile, chipType):
      
     ## get just vcffile name 
     vcffile = os.path.basename(vcffile)
-    directory = directory+'/'
+
+    ## check directory format
+    if not directory.endswith("/"):
+        directory = directory+'/'
+    cdir = directory + "circos/"
+
+    if not os.path.exists(cdir):
+        os.mkdir(cdir)
+
     ## identify karyotype and k id from karyotype from pickle file 
     with open('file_location.pickle', "rb") as f:
         chipDict = pickle.load(f)
@@ -266,14 +274,16 @@ def circos(directory, outfn, vcffile, chipType):
     ## turn vcf file into .dat file
     ## chr - start - finish - snp density
     ## bash script
-    command = "awk '/^#/ {next} {printf(\"%s\\t%d\\n\",$1,$2-$2%1000000);}' " + directory + newvcfname + " | sort | uniq -c | awk '{printf(\"" + kid +"%s\\t%s\\t%d\\t%s\\n\",$2,$3,$3+1000000,$1);}' > " + directory + outfn + ".dat"
-    with open(directory + 'vcf2dat.sh', 'w') as o:
+    command = "awk '/^#/ {next} {printf(\"%s\\t%d\\n\",$1,$2-$2%1000000);}' " + directory + newvcfname + " | sort | uniq -c | awk '{printf(\"" + kid +"%s\\t%s\\t%d\\t%s\\n\",$2,$3,$3+1000000,$1);}' > " + cdir + outfn + ".dat"
+    with open(cdir + 'vcf2dat.sh', 'w') as o:
         o.write(command)
-    subprocess.run(['bash', directory + 'vcf2dat.sh'])
+    subprocess.run(['bash', cdir + 'vcf2dat.sh'])
 
 
     ## read in snp density file created above 
-    snpdensity = pd.read_csv(directory + outfn + ".dat", sep='\t', header=None)
+    snpdensity = pd.read_csv(cdir + outfn + ".dat", sep='\t', header=None)
+
+    snpdensity = fp.compareKaryotype(ktype, snpdensity, cdir + outfn + ".dat")
 
     ## using user input name read in vcf (either old vcf or new vcf)
     callset = allel.read_vcf(directory + newvcfname)
@@ -287,20 +297,21 @@ def circos(directory, outfn, vcffile, chipType):
     fstlist = fst(gt, directory, outfn, samplelist)
     if len(fstlist) == 0:
         ## if there's only one population, then it will output an empty fst file.  
-        f = open(directory + outfn + "_fst.dat", 'w')
+        f = open(cdir + outfn + "_fst.dat", 'w')
         f.close()
     else:
-        fp.makeDATFile(pos, gt, chrm, fstlist, snpdensity, directory, outfn, 'fst')
+        fp.makeDATFile(pos, chrm, fstlist, snpdensity, cdir, outfn, 'fst')
 
     ## count the heterozygoes for each pos
     hetcount = gt.count_het(axis=1)
-    fp.makeDATFile(pos, gt, chrm, hetcount, snpdensity, directory, outfn, 'het')
+    #import pdb; pdb.set_trace()
+    fp.makeDATFile(pos, chrm, hetcount, snpdensity, cdir, outfn, 'het')
 
     ## make config file
-    fp.makeCircos(directory, outfn, ktype)
+    fp.makeCircos(cdir, outfn, ktype)
 
     ## run circos 
-    subprocess.run(["circos", "-outputdir", directory, "-outputfile", outfn, "-conf", directory + "circos.conf"])
+    subprocess.run(["../software/circos/circos-0.69-9/bin/circos", "-outputdir", cdir, "-outputfile", outfn, "-conf", cdir + "circos.conf"])
 
 
 
@@ -341,10 +352,9 @@ def singleChr():
     plt.ylabel(" Number of Heterozygotes ")
     plt.savefig(directory + "/" + outfn + "_het.png")
 
-def heatmap(directory, outfn, vcffile, logfile):
+def heatmap(directory, outfn, vcffile):
 
     ## calculate relatedness via vcftools
-    #subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn], stdout = logfile)
     subprocess.Popen(['vcftools', '--vcf', vcffile, '--relatedness2', '--out', directory + "/" + outfn])
     time.sleep(4)
     relFile = directory + "/" + outfn + ".relatedness2"
@@ -433,20 +443,18 @@ def tstv(directory, vcffile, outfn):
     ax1.set_title('Ts/Tv = ' + str(tstv))
     plt.savefig(directory + '/' + outfn + '_tstv.png')
 
-def main(viz_options, directory, outfn, vcffile, colname):
+def main(viz_options, directory, outfn, vcffile, chipName):
     if 'circos' in viz_options:
-        circos(directory, outfn, vcffile, 'dogHD')
+        circos(directory, outfn, vcffile, chipName)
     if 'sfs' in viz_options:
         sfs(directory, vcffile)
     if 'pca' in viz_options:
-        ## needs to be changed to allow user to select column
-        #pca(directory, outfn, colname)
         pca(directory, vcffile, outfn)
     if 'interactive_heatmap' in viz_options:
         interactive_heatmap(directory, outfn, vcffile)
     if 'heatmap' in viz_options:
         ## call R script
-        heatmap(directory, outfn, vcffile, '')
+        heatmap(directory, outfn, vcffile)
     if 'tree' in viz_options:
         tree(directory, vcffile, outfn)
     if 'base_changes' in viz_options:
@@ -456,9 +464,11 @@ def main(viz_options, directory, outfn, vcffile, colname):
 
         
 if __name__ == '__main__':
+
     directory = sys.argv[1]
     vcffile = sys.argv[2]
     outfn = sys.argv[3]
     viz_options = [sys.argv[4]]
+    chip = sys.argv[5]
 
-    main(viz_options, directory, outfn, vcffile, '')
+    main(viz_options, directory, outfn, vcffile, chip)
